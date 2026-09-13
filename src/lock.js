@@ -5,20 +5,20 @@
  * inactivity auto-lock timers, and rate-limiting against brute force.
  *
  * Stored in: ~/.config/whatsapp-desktop/security.json (mode 0600)
+ *
+ * Modularized into:
+ *   - src/lock/crypto.js: PBKDF2 key derivation and constant-time verification
+ *   - src/lock/storage.js: Secure file persistence (0600 mode) and cleanup
  */
 'use strict';
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-
-const { CONFIG_DIR } = require('./config.js');
-const SECURITY_PATH = path.join(CONFIG_DIR, 'security.json');
-
-const ITERATIONS = 100000;
-const KEYLEN = 32;
-const DIGEST = 'sha256';
+const { deriveHash, generateSalt, verifyHash } = require('./lock/crypto.js');
+const {
+  SECURITY_PATH,
+  loadSecurityState,
+  saveSecurityState,
+  removeSecurityFile,
+} = require('./lock/storage.js');
 
 class LockManager {
   constructor(config) {
@@ -33,36 +33,18 @@ class LockManager {
   }
 
   load() {
-    try {
-      if (fs.existsSync(SECURITY_PATH)) {
-        const content = fs.readFileSync(SECURITY_PATH, 'utf8');
-        const parsed = JSON.parse(content);
-        if (parsed && parsed.salt && parsed.hash) {
-          this.salt = parsed.salt;
-          this.hash = parsed.hash;
-          // If a passcode exists and lock is enabled, start locked
-          if (this.config.get('lock.enabled') !== false) {
-            this.isLocked = true;
-          }
-        }
+    const { salt, hash } = loadSecurityState();
+    if (salt && hash) {
+      this.salt = salt;
+      this.hash = hash;
+      if (this.config.get('lock.enabled') !== false) {
+        this.isLocked = true;
       }
-    } catch (e) {
-      console.warn('Could not read security.json:', e.message);
     }
   }
 
   save() {
-    try {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
-      const data = {
-        salt: this.salt,
-        hash: this.hash,
-        updatedAt: new Date().toISOString(),
-      };
-      fs.writeFileSync(SECURITY_PATH, JSON.stringify(data, null, 2), { mode: 0o600 });
-    } catch (e) {
-      console.warn('Could not write security.json:', e.message);
-    }
+    saveSecurityState(this.salt, this.hash);
   }
 
   hasPasscode() {
@@ -70,7 +52,7 @@ class LockManager {
   }
 
   isEnabled() {
-    return this.hasPasscode() && (this.config.get('lock.enabled') !== false);
+    return this.hasPasscode() && this.config.get('lock.enabled') !== false;
   }
 
   setPasscode(pin) {
@@ -78,10 +60,10 @@ class LockManager {
       throw new Error('Passcode must be at least 4 characters long');
     }
     const clean = pin.trim();
-    const salt = crypto.randomBytes(16).toString('hex');
-    const derived = crypto.pbkdf2Sync(clean, salt, ITERATIONS, KEYLEN, DIGEST);
+    const salt = generateSalt();
+    const derived = deriveHash(clean, salt);
     this.salt = salt;
-    this.hash = derived.toString('hex');
+    this.hash = derived;
     this.save();
     this.config.set('lock.enabled', true);
     this.config.save();
@@ -95,9 +77,7 @@ class LockManager {
     }
     this.salt = null;
     this.hash = null;
-    try {
-      if (fs.existsSync(SECURITY_PATH)) fs.unlinkSync(SECURITY_PATH);
-    } catch (e) {}
+    removeSecurityFile();
     this.config.set('lock.enabled', false);
     this.config.save();
     this.isLocked = false;
@@ -111,12 +91,7 @@ class LockManager {
       throw new Error(`Too many failed attempts. Try again in ${waitSec}s.`);
     }
 
-    const clean = String(pin || '').trim();
-    const derived = crypto.pbkdf2Sync(clean, this.salt, ITERATIONS, KEYLEN, DIGEST);
-    const attemptBuf = Buffer.from(derived.toString('hex'), 'utf8');
-    const targetBuf = Buffer.from(this.hash, 'utf8');
-
-    if (attemptBuf.length === targetBuf.length && crypto.timingSafeEqual(attemptBuf, targetBuf)) {
+    if (verifyHash(pin, this.salt, this.hash)) {
       this.failedAttempts = 0;
       this.isLocked = false;
       this.recordActivity();
@@ -149,7 +124,6 @@ class LockManager {
   checkIdleTimeout() {
     if (!this.isEnabled() || this.isLocked) return false;
     const timeoutMin = Number(this.config.get('lock.timeout'));
-    // If timeout is <= 0 or not configured, auto-lock is disabled
     if (!timeoutMin || timeoutMin <= 0) return false;
 
     const idleMs = Date.now() - this.lastActivity;

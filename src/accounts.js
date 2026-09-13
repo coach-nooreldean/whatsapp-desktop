@@ -4,41 +4,16 @@
  * Stores account metadata in:
  *   ~/.config/whatsapp-desktop/accounts.json
  *
- * The primary account ('default') uses session.defaultSession,
- * ensuring existing login sessions are preserved without any interruption.
- * Secondary accounts use isolated partitions ('persist:account_<id>').
+ * Modularized into:
+ *   - src/accounts/constants.js: Color palette presets and default account templates
+ *   - src/accounts/storage.js: JSON persistence, atomic file I/O, and migrations
  */
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
 const crypto = require('crypto');
-
 const { CONFIG_DIR } = require('./config.js');
-const ACCOUNTS_PATH = path.join(CONFIG_DIR, 'accounts.json');
-
-const DEFAULT_PALETTE = [
-  '#25D366', // WhatsApp Green
-  '#0088cc', // Telegram Blue
-  '#8b5cf6', // Violet
-  '#ec4899', // Pink
-  '#f59e0b', // Amber
-  '#06b6d4', // Cyan
-  '#ef4444', // Red
-  '#10b981', // Emerald
-];
-
-const DEFAULT_ACCOUNT = {
-  id: 'default',
-  name: 'الحساب الأساسي',
-  color: '#25D366',
-  partition: 'default',
-  isDefault: true,
-  unread: 0,
-  lastActive: Date.now(),
-  isSleeping: false,
-};
+const { DEFAULT_PALETTE, DEFAULT_ACCOUNT, ACCOUNTS_PATH } = require('./accounts/constants.js');
+const { loadAccountsFromDisk, saveAccountsToDisk } = require('./accounts/storage.js');
 
 class AccountsManager {
   constructor() {
@@ -48,60 +23,14 @@ class AccountsManager {
   }
 
   load() {
-    try {
-      if (fs.existsSync(ACCOUNTS_PATH)) {
-        const content = fs.readFileSync(ACCOUNTS_PATH, 'utf8');
-        const parsed = JSON.parse(content);
-        if (Array.isArray(parsed.accounts) && parsed.accounts.length > 0) {
-          this.accounts = parsed.accounts.map(acc => ({
-            id: String(acc.id),
-            name: String(acc.name || 'حساب'),
-            color: String(acc.color || DEFAULT_PALETTE[0]),
-            partition: acc.id === 'default' ? 'default' : String(acc.partition || `persist:account_${acc.id}`),
-            isDefault: acc.id === 'default',
-            unread: 0,
-            lastActive: Date.now(),
-            isSleeping: false,
-          }));
-
-          // Ensure default account always exists
-          if (!this.accounts.some(a => a.isDefault)) {
-            this.accounts.unshift({ ...DEFAULT_ACCOUNT, lastActive: Date.now(), isSleeping: false });
-          }
-
-          this.activeId = parsed.activeId && this.accounts.some(a => a.id === parsed.activeId)
-            ? parsed.activeId
-            : this.accounts[0].id;
-          return;
-        }
-      }
-    } catch (e) {
-      console.warn('Could not read accounts.json:', e.message);
-    }
-
-    // Default state: single default account
-    this.accounts = [{ ...DEFAULT_ACCOUNT }];
-    this.activeId = 'default';
+    const { accounts, activeId } = loadAccountsFromDisk();
+    this.accounts = accounts;
+    this.activeId = activeId;
     this.save();
   }
 
   save() {
-    try {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
-      const data = {
-        activeId: this.activeId,
-        accounts: this.accounts.map(acc => ({
-          id: acc.id,
-          name: acc.name,
-          color: acc.color,
-          partition: acc.partition,
-          isDefault: !!acc.isDefault,
-        })),
-      };
-      fs.writeFileSync(ACCOUNTS_PATH, JSON.stringify(data, null, 2), { mode: 0o600 });
-    } catch (e) {
-      console.warn('Could not write accounts.json:', e.message);
-    }
+    saveAccountsToDisk(this.activeId, this.accounts);
   }
 
   getAccounts() {
@@ -150,6 +79,19 @@ class AccountsManager {
     return newAccount;
   }
 
+  removeAccount(id) {
+    if (id === 'default') return false; // Prevent removing primary account
+    const index = this.accounts.findIndex(a => a.id === id);
+    if (index === -1) return false;
+
+    this.accounts.splice(index, 1);
+    if (this.activeId === id) {
+      this.activeId = this.accounts[0] ? this.accounts[0].id : 'default';
+    }
+    this.save();
+    return true;
+  }
+
   updateAccount(id, updates) {
     const acc = this.accounts.find(a => a.id === id);
     if (!acc) return null;
@@ -166,21 +108,6 @@ class AccountsManager {
     return { ...acc };
   }
 
-  removeAccount(id) {
-    // Cannot remove default account
-    if (id === 'default') return false;
-
-    const index = this.accounts.findIndex(a => a.id === id);
-    if (index === -1) return false;
-
-    this.accounts.splice(index, 1);
-    if (this.activeId === id) {
-      this.activeId = this.accounts[0] ? this.accounts[0].id : 'default';
-    }
-    this.save();
-    return true;
-  }
-
   setUnread(id, count) {
     const acc = this.accounts.find(a => a.id === id);
     if (acc) {
@@ -193,15 +120,19 @@ class AccountsManager {
   }
 
   getTotalUnread() {
-    return this.accounts.reduce((sum, acc) => sum + (acc.unread || 0), 0);
+    return this.accounts.reduce((sum, a) => sum + (a.unread || 0), 0);
   }
 
   touchAccount(id) {
-    const acc = this.accounts.find(a => a.id === id);
+    const acc = this.getAccount(id);
     if (acc) {
       acc.lastActive = Date.now();
       acc.isSleeping = false;
     }
+  }
+
+  wakeAccount(id) {
+    this.touchAccount(id);
   }
 
   setSleeping(id, sleeping) {
@@ -211,8 +142,14 @@ class AccountsManager {
     }
   }
 
-  wakeAccount(id) {
-    this.touchAccount(id);
+  hibernateAccount(id) {
+    if (id === 'default' || id === this.activeId) return false;
+    const acc = this.getAccount(id);
+    if (acc && !acc.isSleeping) {
+      acc.isSleeping = true;
+      return true;
+    }
+    return false;
   }
 
   checkInactivity(timeoutMinutes) {
@@ -222,7 +159,6 @@ class AccountsManager {
     const slept = [];
 
     for (const acc of this.accounts) {
-      // Never sleep the currently active account
       if (acc.id === this.activeId) continue;
       if (acc.isSleeping) continue;
 
@@ -234,9 +170,27 @@ class AccountsManager {
     }
     return slept;
   }
+
+  checkInactivityHibernation(maxInactiveMinutes = 30) {
+    const now = Date.now();
+    const thresholdMs = maxInactiveMinutes * 60 * 1000;
+    const hibernated = [];
+
+    for (const acc of this.accounts) {
+      if (acc.id !== 'default' && acc.id !== this.activeId && !acc.isSleeping) {
+        if (now - acc.lastActive > thresholdMs) {
+          acc.isSleeping = true;
+          hibernated.push(acc);
+        }
+      }
+    }
+    return hibernated;
+  }
 }
 
 AccountsManager.AccountsManager = AccountsManager;
 AccountsManager.DEFAULT_PALETTE = DEFAULT_PALETTE;
+AccountsManager.DEFAULT_ACCOUNT = DEFAULT_ACCOUNT;
+AccountsManager.ACCOUNTS_PATH = ACCOUNTS_PATH;
 
 module.exports = AccountsManager;

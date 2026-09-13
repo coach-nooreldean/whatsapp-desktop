@@ -168,6 +168,7 @@ test:
 	@node tools/test-storage-maintenance.js
 	@node tools/test-spellcheck-languages.js
 	@node tools/test-global-shortcuts.js
+	@node tools/test-modular-architecture.js
 
 run:
 	@env -u ELECTRON_RUN_AS_NODE npm start

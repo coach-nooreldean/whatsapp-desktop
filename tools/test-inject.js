@@ -337,6 +337,36 @@ const sandbox = {
        is the shape of the day WhatsApp renames one of those names, and it must
        be quiet rather than fatal. */
     if (name === './pictures.js') return require('../src/page/pictures.js');
+    if (name === './video.js') return require('../src/page/video.js');
+    if (name === './caret.js') return require('../src/page/caret.js');
+    if (name === './tone.js') return require('../src/page/tone.js');
+    if (name === './panels.js') return require('../src/page/panels.js');
+    if (name === '../panels.js') return require('../src/page/panels.js');
+    if (name === '../../wording.js') return require('../src/wording.js');
+
+    const moduleCache = sandbox.__moduleCache || (sandbox.__moduleCache = new Map());
+    let injectSub = null;
+    if (name.startsWith('./inject/')) injectSub = name.slice('./inject/'.length);
+    else if (/^\.\/(rows|avatars|sounds|navigation|drawer-escape|composer-bar|arrivals|jump|notification-shim|watcher)(\.js)?$/.test(name)) {
+      injectSub = name.slice(2);
+      if (!injectSub.endsWith('.js')) injectSub += '.js';
+    }
+    if (injectSub) {
+      if (moduleCache.has(injectSub)) return moduleCache.get(injectSub);
+      const filePath = path.join(__dirname, '..', 'src', 'page', 'inject', injectSub);
+      const code = fs.readFileSync(filePath, 'utf8');
+      const mod = { exports: {} };
+      moduleCache.set(injectSub, mod.exports);
+      sandbox.__currentModule = mod;
+      vm.runInContext(
+        `(function(module, exports, require) { ${code}\n })(__currentModule, __currentModule.exports, require);`,
+        sandbox,
+        { filename: injectSub }
+      );
+      moduleCache.set(injectSub, mod.exports);
+      delete sandbox.__currentModule;
+      return mod.exports;
+    }
     /* Anything else is a name out of WhatsApp's own registry, which the page
        reaches for through this same require -- contextIsolation is off, so
        window.require IS Meta's. The rig answers for a name only once a check has

@@ -389,34 +389,38 @@
 
           if (!acc.isDefault) {
             const delBtn = document.createElement('button');
-            delBtn.textContent = 'Remove';
-            delBtn.style.padding = '4px 10px';
-            delBtn.style.background = 'transparent';
-            delBtn.style.border = '1px solid var(--border-color)';
+            delBtn.textContent = 'حذف / Remove';
+            delBtn.style.padding = '5px 12px';
+            delBtn.style.background = 'rgba(234, 67, 53, 0.1)';
+            delBtn.style.border = '1px solid rgba(234, 67, 53, 0.4)';
             delBtn.style.color = '#ea4335';
             delBtn.style.borderRadius = '6px';
             delBtn.style.fontSize = '12px';
+            delBtn.style.fontWeight = '500';
             delBtn.style.cursor = 'pointer';
-            delBtn.style.transition = 'all 0.2s ease';
+            delBtn.style.transition = 'all 0.15s ease';
 
-            let confirming = false;
-            delBtn.addEventListener('click', async () => {
-              if (!confirming) {
-                confirming = true;
-                delBtn.textContent = 'Confirm? / تأكيد';
-                delBtn.style.backgroundColor = '#ea4335';
-                delBtn.style.color = '#ffffff';
-                setTimeout(() => {
-                  confirming = false;
-                  delBtn.textContent = 'Remove';
-                  delBtn.style.backgroundColor = 'transparent';
-                  delBtn.style.color = '#ea4335';
-                }, 3500);
-                return;
-              }
+            delBtn.addEventListener('mouseenter', () => {
+              delBtn.style.background = '#ea4335';
+              delBtn.style.color = '#ffffff';
+            });
+            delBtn.addEventListener('mouseleave', () => {
+              delBtn.style.background = 'rgba(234, 67, 53, 0.1)';
+              delBtn.style.color = '#ea4335';
+            });
+
+            delBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
               delBtn.disabled = true;
-              await window.api.removeAccount(acc.id);
-              loadAccounts();
+              delBtn.textContent = 'جاري الحذف...';
+              try {
+                await window.api.removeAccount(acc.id);
+                await loadAccounts();
+              } catch (err) {
+                console.error(err);
+                delBtn.disabled = false;
+                delBtn.textContent = 'حذف / Remove';
+              }
             });
             rightActions.appendChild(delBtn);
           }

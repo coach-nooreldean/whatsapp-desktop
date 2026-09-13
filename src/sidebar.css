@@ -147,6 +147,38 @@ body.collapsed:hover .pull-handle {
   box-shadow: 0 0 0 2px var(--accent);
 }
 
+/* Quick Left-click delete button on hover */
+.account-del-btn {
+  position: absolute;
+  top: -4px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--badge-red);
+  color: #ffffff;
+  border: 2px solid var(--bg-sidebar);
+  font-size: 13px;
+  font-weight: 700;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.account-item-wrap:hover .account-del-btn {
+  display: flex;
+}
+
+.account-del-btn:hover {
+  transform: scale(1.25);
+  background-color: #d93025;
+}
+
 /* Unread counter badge */
 .unread-badge {
   position: absolute;

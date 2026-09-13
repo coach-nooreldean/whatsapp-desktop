@@ -115,6 +115,21 @@
         });
 
         wrap.appendChild(btn);
+
+        if (acc.id !== 'default') {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'account-del-btn';
+          delBtn.innerHTML = '&times;';
+          delBtn.title = `حذف الحساب / Remove ${acc.name}`;
+          delBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (window.api && window.api.removeAccount) {
+              await window.api.removeAccount(acc.id);
+            }
+          });
+          wrap.appendChild(delBtn);
+        }
+
         accountsList.appendChild(wrap);
       });
     }

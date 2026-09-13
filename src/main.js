@@ -9,7 +9,7 @@
  */
 'use strict';
 
-const { app, BrowserWindow, WebContentsView, Menu, clipboard, session, shell, nativeTheme, ipcMain, screen: electronScreen, desktopCapturer } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, MenuItem, dialog, clipboard, session, shell, nativeTheme, ipcMain, screen: electronScreen, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');

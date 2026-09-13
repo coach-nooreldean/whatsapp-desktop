@@ -34,6 +34,9 @@ const { LockManager } = require('./lock.js');
 const { MprisService } = require('./mpris.js');
 const { THEMES, detectHyprlandColors, getWebThemeCss } = require('./themes.js');
 const { handleShortcut } = require('./core/shortcuts.js');
+const { LifecycleManager } = require('./core/lifecycle.js');
+const { PaletteManager } = require('./core/palette.js');
+const coreMenu = require('./core/menu.js');
 
 /* Version, licence and author, read from the one file that already says them. */
 const manifest = require('../package.json');
@@ -78,6 +81,8 @@ let sidebarCollapsed = config.get('view.sidebar-collapsed') === true;
 let mprisService = null;
 let hyprlandColors = null;
 let lockWin = null;
+let paletteMgr = null;
+let lifecycleMgr = null;
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   const pkg = require('../package.json');
@@ -421,6 +426,58 @@ function lockApp() {
   showLockWindow();
 }
 
+function focusChatSearch() {
+  const activeItem = accountViews.get(activeAccountId);
+  if (activeItem && activeItem.view && !activeItem.view.webContents.isDestroyed()) {
+    activeItem.view.webContents.focus();
+    activeItem.view.webContents.executeJavaScript(`(() => {
+      const searchBox = document.querySelector('#side [role="textbox"]') ||
+                        document.querySelector('#side div[contenteditable="true"]') ||
+                        document.querySelector('[data-testid="chat-list-search"]') ||
+                        document.querySelector('div[contenteditable="true"][data-tab="3"]');
+      if (searchBox) {
+        searchBox.focus();
+        searchBox.click();
+      }
+    })()`).catch(() => {});
+  }
+}
+
+function toggleCommandPalette() {
+  if (!paletteMgr) {
+    paletteMgr = new PaletteManager({
+      getParentWindow: () => win,
+      accountsMgr,
+      actions: {
+        focusChatSearch: () => focusChatSearch(),
+        togglePrivacy: () => togglePrivacy(),
+        lockApp: () => lockApp(),
+        toggleSidebar: () => toggleSidebar(),
+        openSettings: () => openSettings(),
+        openFonts: () => openFonts(),
+        reload: () => {
+          const activeWc = getActiveWebContents();
+          if (activeWc) activeWc.reload();
+        },
+        switchAccount: id => switchToAccount(id),
+      },
+      theme: config.get('view.theme') || 'system',
+      uiFont: uiFont(),
+    });
+  }
+  paletteMgr.toggle();
+}
+
+function hibernateAccount(acc) {
+  if (!acc || acc.id === activeAccountId) return;
+  const item = accountViews.get(acc.id);
+  if (item && item.view && !item.view.webContents.isDestroyed()) {
+    item.view.webContents.setBackgroundThrottling(true);
+    item.view.webContents.send('wa:on-screen', false);
+    item.view.webContents.send('wa:focus', false);
+    item.view.webContents.invalidate();
+  }
+}
 
 const updateLayout = () => {
   if (!win || win.isDestroyed()) return;
@@ -470,6 +527,7 @@ const switchToAccount = id => {
   notifySidebarState();
   const item = accountViews.get(id);
   if (item && !item.view.webContents.isDestroyed()) {
+    item.view.webContents.setBackgroundThrottling(false);
     item.view.webContents.focus();
     const title = item.view.webContents.getTitle();
     if (win && !win.isDestroyed()) win.setTitle(title && title.trim() ? title : TITLE);
@@ -919,6 +977,7 @@ const changeSetting = (key, value) => {
     }
   }
   if (key === 'view.theme') {
+    if (paletteMgr) paletteMgr.setTheme(value || 'system');
     notifySidebarState();
     applyStyle();
   }
@@ -1711,70 +1770,7 @@ const popupOptions = features => {
  * was no way to see what it wanted instead.
  */
 const showContextMenu = (contents, params) => {
-  const flags = params.editFlags || {};
-  const template = [];
-  const rule = () => { if (template.length) template.push({ type: 'separator' }); };
-
-  /* First, above the editing actions, the way every desktop puts them: what
-     the underline is asking is the reason the menu was opened. */
-  if (params.misspelledWord) {
-    for (const word of params.dictionarySuggestions || [])
-      template.push({ label: word, click: () => contents.replaceMisspelling(word) });
-    if (!(params.dictionarySuggestions || []).length)
-      template.push({ label: 'No spelling suggestions', enabled: false });
-    template.push({
-      label: 'Add to dictionary',
-      click: () => contents.session.addWordToSpellCheckerDictionary(params.misspelledWord),
-    });
-  }
-
-  if (params.isEditable) {
-    rule();
-    template.push(
-      { role: 'undo', enabled: !!flags.canUndo },
-      { role: 'redo', enabled: !!flags.canRedo },
-      { type: 'separator' },
-      { role: 'cut', enabled: !!flags.canCut },
-      { role: 'copy', enabled: !!flags.canCopy },
-      { role: 'paste', enabled: !!flags.canPaste },
-      /* WhatsApp's composer is a rich-text editor and a paste carries the
-         formatting of wherever it came from. */
-      { role: 'pasteAndMatchStyle', enabled: !!flags.canPaste },
-      { role: 'delete', enabled: !!flags.canDelete },
-      { role: 'selectAll' },
-    );
-  } else if (params.selectionText) {
-    rule();
-    template.push({ role: 'copy' }, { role: 'selectAll' });
-  }
-
-  /* A link, and an image, on the pages a chat opens in a window of its own --
-     inside a conversation both of these belong to WhatsApp's own menu. The
-     link is opened in the browser rather than here because that is what this
-     client does with one everywhere else. */
-  if (params.linkURL) {
-    rule();
-    template.push(
-      { label: 'Open link in browser', click: () => shell.openExternal(params.linkURL) },
-      { label: 'Copy link', click: () => clipboard.writeText(params.linkURL) },
-    );
-  }
-  if (params.mediaType === 'image') {
-    rule();
-    template.push({ label: 'Copy image', click: () => contents.copyImageAt(params.x, params.y) });
-  }
-
-  /* Last, and always: the devtools are a documented Ctrl+Shift+I in this
-     client, and a menu that can point at the element is the other half of it. */
-  rule();
-  template.push({ label: 'Inspect', click: () => contents.inspectElement(params.x, params.y) });
-
-  /* A native menu is drawn by the toolkit and never appears in a capturePage,
-     so what it says is only ever readable from here. */
-  debug.trace('menu: %s', template.map(item => item.label || item.role || '--').join(' / '));
-
-  const window = BrowserWindow.fromWebContents(contents);
-  if (window) Menu.buildFromTemplate(template).popup({ window: window });
+  coreMenu.showContextMenu(contents, params, debug.trace);
 };
 
 const adoptPopup = popup => {
@@ -1831,6 +1827,7 @@ const onKey = (event, input) => {
       if (activeWc) activeWc.toggleDevTools();
     },
     openSettings: () => openSettings(),
+    openCommandPalette: () => toggleCommandPalette(),
     switchAccountByIndex: idx => {
       const accounts = accountsMgr.getAccounts();
       if (idx >= 0 && idx < accounts.length) {
@@ -2204,6 +2201,7 @@ const setBadge = count => {
 
 const quit = () => {
   quitting = true;
+  if (lifecycleMgr) lifecycleMgr.dispose();
   app.quit();
 };
 
@@ -2225,6 +2223,7 @@ const wireSettingsIpc = () => {
       privacyHoverReveal: config.get('privacy.hover-reveal') !== false,
       privacyBlurContacts: !!config.get('privacy.blur-contacts'),
       hibernationMinutes: config.get('accounts.hibernation-minutes') != null ? config.get('accounts.hibernation-minutes') : 30,
+      lockOnSystemLock: config.get('lock.auto-lock-on-system-lock') !== false,
       /* The family the client draws the page in, so this window can be drawn in
          it too rather than in whatever Chromium picks for a plain page. */
       font: uiFont(),
@@ -2273,6 +2272,7 @@ const wireSettingsIpc = () => {
       enabled: lockMgr.isEnabled(),
       hasPasscode: lockMgr.hasPasscode(),
       timeout: Number(config.get('lock.timeout')) || 15,
+      autoLockOnSystemLock: config.get('lock.auto-lock-on-system-lock') !== false,
       isLocked: lockMgr.isLocked,
     };
   });
@@ -2295,6 +2295,14 @@ const wireSettingsIpc = () => {
     const t = config.get('view.theme') || 'system';
     if (t === 'system') return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
     return (t === 'light') ? 'light' : 'dark';
+  });
+
+  ipcMain.on('palette:execute', (_, actionId) => {
+    if (paletteMgr) paletteMgr.executeAction(actionId);
+  });
+
+  ipcMain.on('palette:close', () => {
+    if (paletteMgr) paletteMgr.hide();
   });
 
   /* Whichever window asked, rather than the settings window by name: the same
@@ -3130,21 +3138,16 @@ app.whenReady().then(() => {
     }
   }
 
-  setInterval(() => {
-    const timeoutMin = Number(config.get('accounts.hibernation-minutes'));
-    if (timeoutMin && timeoutMin > 0) {
-      const slept = accountsMgr.checkInactivity(timeoutMin);
-      if (slept && slept.length > 0) {
-        notifySidebarState();
-      }
-    }
-  }, 60 * 1000);
-
-  setInterval(() => {
-    if (lockMgr.isEnabled() && !lockMgr.isLocked && lockMgr.checkIdleTimeout()) {
-      lockApp();
-    }
-  }, 30 * 1000);
+  lifecycleMgr = new LifecycleManager({
+    config,
+    lockMgr,
+    accountsMgr,
+    lockApp,
+    notifySidebarState,
+    checkForUpdates,
+    onHibernateAccount: acc => hibernateAccount(acc),
+  });
+  lifecycleMgr.init();
 
 
   /* The scheme, and the link that may have asked for this window in the first
@@ -3184,22 +3187,7 @@ app.whenReady().then(() => {
      where the window is have already been and gone. */
   tray.setInFront(windowInFront());
 
-  /*
-   * One quiet look for a newer version, and then one a day.
-   *
-   * Nothing is downloaded and nothing pops up: all this can do is put a version
-   * on the tray's own item, where somebody who opens the menu will see it. A
-   * client installed from a repository whose metadata has not been refreshed
-   * otherwise has no way to know a release went out at all. Turn it off with
-   * `check = false` under `[updates]` in the config file.
-   *
-   * Late, rather than at startup: the first seconds belong to the window and to
-   * WhatsApp's own connection, and this question can wait for them.
-   */
-  if (config.get('updates.check') !== false) {
-    setTimeout(() => checkForUpdates(), UPDATE_FIRST_MS);
-    setInterval(() => checkForUpdates(), UPDATE_EVERY_MS);
-  }
+
 
   debug.install(() => win, () => banners,
                 { show: () => showWindow('the debug rig'), toggle: toggleWindow,

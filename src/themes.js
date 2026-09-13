@@ -76,6 +76,28 @@ const THEMES = {
     incomingBubble: '#313244',
     outgoingBubble: '#45475a',
   },
+  dracula: {
+    name: 'Dracula',
+    bg: '#282a36',
+    card: '#44475a',
+    border: '#6272a4',
+    text: '#f8f8f2',
+    textMuted: '#6272a4',
+    accent: '#bd93f9',
+    incomingBubble: '#44475a',
+    outgoingBubble: '#4d3b6b',
+  },
+  tokyonight: {
+    name: 'Tokyo Night',
+    bg: '#1a1b26',
+    card: '#24283b',
+    border: '#414868',
+    text: '#c0caf5',
+    textMuted: '#7aa2f7',
+    accent: '#7aa2f7',
+    incomingBubble: '#24283b',
+    outgoingBubble: '#283457',
+  },
 };
 
 /**

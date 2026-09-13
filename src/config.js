@@ -93,6 +93,7 @@ const DEFAULTS = {
   /* App Lock & Passcode */
   'lock.enabled': false,
   'lock.timeout': 15,
+  'lock.auto-lock-on-system-lock': true,
   /* Linux Desktop MPRIS2 Media Player */
   'mpris.enabled': true,
   /* Multi-account memory optimization (minutes of inactivity before sleeping background account) */

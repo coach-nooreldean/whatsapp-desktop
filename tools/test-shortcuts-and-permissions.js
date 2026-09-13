@@ -36,14 +36,25 @@ try {
   let privacyToggled = false;
   let appLocked = false;
   let accountSwitched = -1;
+  let paletteOpened = false;
 
   const actions = {
     togglePrivacy: () => { privacyToggled = true; },
     lockApp: () => { appLocked = true; },
     switchAccountByIndex: (idx) => { accountSwitched = idx; },
+    openCommandPalette: () => { paletteOpened = true; },
   };
 
   const fakePreventDefault = () => {};
+
+  // Test Ctrl+K (Command Palette)
+  const kHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: false, key: 'k' },
+    actions
+  );
+  check('handleShortcut handles Ctrl+K', kHandled, true);
+  check('actions.openCommandPalette was invoked', paletteOpened, true);
 
   // Test Ctrl+Alt+P (Privacy Shield)
   const pHandled = handleShortcut(

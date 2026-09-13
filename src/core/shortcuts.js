@@ -56,6 +56,13 @@ function handleShortcut(event, input, actions) {
     return true;
   }
 
+  // Command Palette / Quick Switcher
+  if (ctrl && !input.alt && key === 'k') {
+    event.preventDefault();
+    if (actions.openCommandPalette) actions.openCommandPalette();
+    return true;
+  }
+
   // Ctrl+1 through Ctrl+9 switches accounts
   if (ctrl && !input.alt && !input.shift && /^[1-9]$/.test(input.key)) {
     const idx = parseInt(input.key, 10) - 1;

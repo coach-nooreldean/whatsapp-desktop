@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Command Palette</title>
+  <link rel="stylesheet" href="window.css">
+  <style>
+    :root {
+      --palette-bg: #111b21;
+      --palette-card: #202c33;
+      --palette-border: #2a3942;
+      --palette-text: #e9edef;
+      --palette-muted: #8696a0;
+      --palette-accent: #00a884;
+      --palette-hover: rgba(255, 255, 255, 0.06);
+      --palette-active: rgba(0, 168, 132, 0.16);
+    }
+
+    [data-theme="oled"] {
+      --palette-bg: #000000;
+      --palette-card: #0c0c0c;
+      --palette-border: #1f1f1f;
+      --palette-text: #f5f5f5;
+      --palette-muted: #9e9e9e;
+      --palette-hover: rgba(255, 255, 255, 0.08);
+      --palette-active: rgba(0, 168, 132, 0.22);
+    }
+
+    [data-theme="nord"] {
+      --palette-bg: #2e3440;
+      --palette-card: #3b4252;
+      --palette-border: #4c566a;
+      --palette-text: #eceff4;
+      --palette-muted: #d8dee9;
+      --palette-accent: #88c0d0;
+      --palette-hover: rgba(255, 255, 255, 0.08);
+      --palette-active: rgba(136, 192, 208, 0.2);
+    }
+
+    [data-theme="catppuccin"] {
+      --palette-bg: #1e1e2e;
+      --palette-card: #181825;
+      --palette-border: #313244;
+      --palette-text: #cdd6f4;
+      --palette-muted: #a6adc8;
+      --palette-accent: #89b4fa;
+      --palette-hover: rgba(255, 255, 255, 0.08);
+      --palette-active: rgba(137, 180, 250, 0.2);
+    }
+
+    [data-theme="dracula"] {
+      --palette-bg: #282a36;
+      --palette-card: #44475a;
+      --palette-border: #6272a4;
+      --palette-text: #f8f8f2;
+      --palette-muted: #6272a4;
+      --palette-accent: #bd93f9;
+      --palette-hover: rgba(255, 255, 255, 0.08);
+      --palette-active: rgba(189, 147, 249, 0.2);
+    }
+
+    [data-theme="tokyonight"] {
+      --palette-bg: #1a1b26;
+      --palette-card: #24283b;
+      --palette-border: #414868;
+      --palette-text: #c0caf5;
+      --palette-muted: #7aa2f7;
+      --palette-accent: #7aa2f7;
+      --palette-hover: rgba(255, 255, 255, 0.08);
+      --palette-active: rgba(122, 162, 247, 0.2);
+    }
+
+    [data-theme="light"] {
+      --palette-bg: #ffffff;
+      --palette-card: #f0f2f5;
+      --palette-border: #d1d7db;
+      --palette-text: #111b21;
+      --palette-muted: #667781;
+      --palette-accent: #00a884;
+      --palette-hover: rgba(0, 0, 0, 0.04);
+      --palette-active: rgba(0, 168, 132, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: var(--font-family, system-ui, -apple-system, sans-serif);
+    }
+
+    .palette-box {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: var(--palette-bg);
+      border: 1px solid var(--palette-border);
+      border-radius: 12px;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--palette-border);
+      background: var(--palette-card);
+    }
+
+    .search-row svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: var(--palette-muted);
+      stroke-width: 2;
+      flex-shrink: 0;
+    }
+
+    .search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--palette-text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    .search-input::placeholder {
+      color: var(--palette-muted);
+    }
+
+    .esc-badge {
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(128, 128, 128, 0.18);
+      color: var(--palette-muted);
+      font-family: monospace;
+      border: 1px solid var(--palette-border);
+    }
+
+    .action-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .action-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.1s ease;
+      color: var(--palette-text);
+    }
+
+    .action-item:hover {
+      background: var(--palette-hover);
+    }
+
+    .action-item.selected {
+      background: var(--palette-active);
+      border-left: 3px solid var(--palette-accent);
+    }
+
+    .action-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--palette-muted);
+      flex-shrink: 0;
+    }
+
+    .action-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+    }
+
+    .action-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .action-title {
+      font-size: 13.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .action-desc {
+      font-size: 11.5px;
+      color: var(--palette-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .action-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .category-tag {
+      font-size: 10.5px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(128, 128, 128, 0.12);
+      color: var(--palette-muted);
+    }
+
+    .shortcut-badge {
+      font-size: 11px;
+      font-family: monospace;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(128, 128, 128, 0.15);
+      color: var(--palette-muted);
+      border: 1px solid var(--palette-border);
+    }
+
+    .empty-state {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--palette-muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="palette-box">
+    <div class="search-row">
+      <svg viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" class="search-input" id="searchInput" placeholder="Type a command or search accounts..." autofocus>
+      <span class="esc-badge">ESC</span>
+    </div>
+    <div class="action-list" id="actionList"></div>
+  </div>
+
+  <script>
+    let allActions = [];
+    let filteredActions = [];
+    let selectedIndex = 0;
+
+    const searchInput = document.getElementById('searchInput');
+    const actionList = document.getElementById('actionList');
+
+    const ICONS = {
+      search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+      shield: '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      lock: '<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+      sidebar: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>',
+      settings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+      font: '<svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>',
+      reload: '<svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+      user: '<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    };
+
+    function renderList() {
+      actionList.innerHTML = '';
+      if (filteredActions.length === 0) {
+        actionList.innerHTML = '<div class="empty-state">No matching commands found</div>';
+        return;
+      }
+
+      filteredActions.forEach((act, index) => {
+        const item = document.createElement('div');
+        item.className = 'action-item' + (index === selectedIndex ? ' selected' : '');
+
+        let iconSvg = ICONS[act.icon] || ICONS.search;
+        if (act.color) {
+          iconSvg = `<div style="width: 12px; height: 12px; border-radius: 50%; background: ${act.color};"></div>`;
+        }
+
+        item.innerHTML = `
+          <div class="action-icon">${iconSvg}</div>
+          <div class="action-content">
+            <div class="action-title">${escapeHtml(act.title)}</div>
+            <div class="action-desc">${escapeHtml(act.description || '')}</div>
+          </div>
+          <div class="action-meta">
+            ${act.category ? `<span class="category-tag">${escapeHtml(act.category)}</span>` : ''}
+            ${act.shortcut ? `<span class="shortcut-badge">${escapeHtml(act.shortcut)}</span>` : ''}
+          </div>
+        `;
+
+        item.addEventListener('click', () => {
+          execute(act.id);
+        });
+
+        actionList.appendChild(item);
+      });
+
+      // Ensure selected element is scrolled into view
+      const selectedEl = actionList.children[selectedIndex];
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    function filterActions(query) {
+      const q = query.trim().toLowerCase();
+      if (!q) {
+        filteredActions = [...allActions];
+      } else {
+        filteredActions = allActions.filter(act => {
+          return act.title.toLowerCase().includes(q) ||
+                 (act.description && act.description.toLowerCase().includes(q)) ||
+                 (act.category && act.category.toLowerCase().includes(q));
+        });
+      }
+      selectedIndex = 0;
+      renderList();
+    }
+
+    function execute(actionId) {
+      if (window.api && window.api.executeAction) {
+        window.api.executeAction(actionId);
+      }
+    }
+
+    function closePalette() {
+      if (window.api && window.api.close) {
+        window.api.close();
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    searchInput.addEventListener('input', e => {
+      filterActions(e.target.value);
+    });
+
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closePalette();
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (filteredActions.length > 0) {
+          selectedIndex = (selectedIndex + 1) % filteredActions.length;
+          renderList();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (filteredActions.length > 0) {
+          selectedIndex = (selectedIndex - 1 + filteredActions.length) % filteredActions.length;
+          renderList();
+        }
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (filteredActions.length > 0 && filteredActions[selectedIndex]) {
+          execute(filteredActions[selectedIndex].id);
+        }
+        return;
+      }
+    });
+
+    if (window.api) {
+      window.api.onInit(data => {
+        if (data.theme) document.documentElement.setAttribute('data-theme', data.theme);
+        if (data.font) {
+          document.documentElement.style.setProperty(
+            '--font-family', '"' + String(data.font).replace(/"/g, '') + '", system-ui, sans-serif');
+        }
+        allActions = data.actions || [];
+        searchInput.value = '';
+        filterActions('');
+        setTimeout(() => searchInput.focus(), 30);
+      });
+
+      window.api.onTheme(theme => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -26,6 +26,20 @@ try {
   check('oled background is pure black #000000', THEMES.oled.bg, '#000000');
   check('THEMES has nord', !!THEMES.nord, true);
   check('THEMES has catppuccin', !!THEMES.catppuccin, true);
+  check('THEMES has dracula', !!THEMES.dracula, true);
+  check('dracula background is #282a36', THEMES.dracula.bg, '#282a36');
+  check('dracula accent is #bd93f9', THEMES.dracula.accent, '#bd93f9');
+  check('THEMES has tokyonight', !!THEMES.tokyonight, true);
+  check('tokyonight background is #1a1b26', THEMES.tokyonight.bg, '#1a1b26');
+  check('tokyonight accent is #7aa2f7', THEMES.tokyonight.accent, '#7aa2f7');
+
+  // Check CSS generation for Dracula
+  const draculaCss = getWebThemeCss('dracula');
+  check('Dracula CSS overrides background', draculaCss.includes('--bg-color: #282a36 !important;'), true);
+
+  // Check CSS generation for Tokyo Night
+  const tokyoCss = getWebThemeCss('tokyonight');
+  check('Tokyo Night CSS overrides background', tokyoCss.includes('--bg-color: #1a1b26 !important;'), true);
 
   // Check CSS generation for OLED
   const oledCss = getWebThemeCss('oled');

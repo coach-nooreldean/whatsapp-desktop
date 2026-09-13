@@ -161,6 +161,8 @@ test:
 	@node tools/test-themes.js
 	@node tools/test-hibernation.js
 	@node tools/test-shortcuts-and-permissions.js
+	@node tools/test-palette.js
+	@node tools/test-system-lock.js
 
 run:
 	@env -u ELECTRON_RUN_AS_NODE npm start

@@ -8,12 +8,22 @@
 </head>
 <body>
 
+  <!-- Pull handle shown when collapsed -->
+  <div class="pull-handle" id="pullHandle" title="إظهار الشريط الجانبي (Ctrl+Alt+S)"></div>
+
   <div class="accounts-container" id="accountsList"></div>
 
   <button class="add-btn" id="addAccountBtn" title="إضافة حساب جديد (Ctrl+Alt+A)">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="12" y1="5" x2="12" y2="19"></line>
       <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <!-- Toggle / Collapse button at the bottom -->
+  <button class="toggle-btn" id="toggleSidebarBtn" title="طي الشريط الجانبي (Ctrl+Alt+S)">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
     </svg>
   </button>
 
@@ -25,7 +35,7 @@
       <div class="modal-title">
         <span>إضافة حساب واتساب جديد</span>
       </div>
-      <input type="text" class="modal-input" id="accountNameInput" placeholder="اسم الحساب (مثال: العمل)" maxlength="20">
+      <input type="text" class="modal-input" id="accountNameInput" placeholder="اسم الحساب (مثال: العمل / Work)" maxlength="20">
       <div class="palette-grid" id="paletteGrid"></div>
       <div class="modal-actions">
         <button class="btn-secondary" id="cancelAddBtn">إلغاء</button>
@@ -37,6 +47,8 @@
   <script>
     const accountsList = document.getElementById('accountsList');
     const addAccountBtn = document.getElementById('addAccountBtn');
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+    const pullHandle = document.getElementById('pullHandle');
     const tooltip = document.getElementById('tooltip');
     const addModal = document.getElementById('addModal');
     const accountNameInput = document.getElementById('accountNameInput');
@@ -50,6 +62,7 @@
     ];
     let selectedColor = PALETTE[1];
     let currentState = { accounts: [], activeId: 'default', theme: 'dark' };
+    let isCollapsed = false;
 
     // Setup color picker dots
     PALETTE.forEach((col, idx) => {
@@ -78,6 +91,9 @@
       if (!state) return;
       currentState = state;
       document.documentElement.setAttribute('data-theme', state.theme || 'dark');
+      if (typeof state.collapsed === 'boolean') {
+        setCollapsedUI(state.collapsed);
+      }
 
       accountsList.innerHTML = '';
       const accounts = state.accounts || [];
@@ -120,7 +136,8 @@
         });
 
         // Hover tooltip
-        btn.addEventListener('mouseenter', (e) => {
+        btn.addEventListener('mouseenter', () => {
+          if (isCollapsed) return;
           const rect = btn.getBoundingClientRect();
           tooltip.textContent = `${acc.name} (Ctrl+${index + 1})`;
           tooltip.style.top = `${rect.top + (rect.height / 2) - 14}px`;
@@ -137,13 +154,19 @@
     }
 
     function openAddModal() {
+      if (window.api && window.api.notifyModalOpen) {
+        window.api.notifyModalOpen();
+      }
       accountNameInput.value = '';
       addModal.classList.add('open');
-      setTimeout(() => accountNameInput.focus(), 50);
+      setTimeout(() => accountNameInput.focus(), 60);
     }
 
     function closeAddModal() {
       addModal.classList.remove('open');
+      if (window.api && window.api.notifyModalClose) {
+        window.api.notifyModalClose();
+      }
     }
 
     addAccountBtn.addEventListener('click', openAddModal);
@@ -166,10 +189,39 @@
       if (e.key === 'Escape') closeAddModal();
     });
 
+    // Toggle collapse
+    toggleSidebarBtn.addEventListener('click', () => {
+      if (window.api && window.api.setCollapsed) {
+        window.api.setCollapsed(true);
+      }
+    });
+
+    // Pull handle expands
+    pullHandle.addEventListener('click', () => {
+      if (window.api && window.api.setCollapsed) {
+        window.api.setCollapsed(false);
+      }
+    });
+
+    document.body.addEventListener('mouseenter', () => {
+      if (isCollapsed && window.api && window.api.setCollapsed) {
+        window.api.setCollapsed(false);
+      }
+    });
+
+    function setCollapsedUI(collapsed) {
+      isCollapsed = !!collapsed;
+      document.body.classList.toggle('collapsed', isCollapsed);
+      if (isCollapsed) tooltip.classList.remove('show');
+    }
+
     if (window.api) {
       window.api.getInitialState().then(render).catch(console.error);
       window.api.onStateChange(render);
       window.api.onOpenAddModal(openAddModal);
+      if (window.api.onCollapsedChange) {
+        window.api.onCollapsedChange(setCollapsedUI);
+      }
     }
   </script>
 </body>

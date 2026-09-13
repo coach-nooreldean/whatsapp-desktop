@@ -167,6 +167,18 @@
           </div>
           <button class="stepper-btn" id="settingsAddAccountBtn" style="padding: 6px 14px; font-size: 13px; width: auto; height: 32px; border-radius: 6px; cursor: pointer;">+ Add</button>
         </div>
+
+        <!-- Inline Add Form -->
+        <div id="settingsAddForm" style="display: none; margin-top: 12px; padding: 14px; background: rgba(0,0,0,0.18); border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">إضافة حساب جديد / Add New Account</div>
+          <input type="text" id="settingsAccountNameInput" placeholder="اسم الحساب (مثال: العمل / Work)" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; margin-bottom: 10px; outline: none;">
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">لون الحساب / Account Color:</div>
+          <div id="settingsColorPicker" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;"></div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button id="settingsCancelAddBtn" style="padding: 6px 12px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; cursor: pointer; font-size: 12px;">إلغاء / Cancel</button>
+            <button id="settingsSaveAddBtn" style="padding: 6px 14px; background: #00a884; border: none; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">إضافة / Add</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -336,11 +348,26 @@
             delBtn.style.borderRadius = '6px';
             delBtn.style.fontSize = '12px';
             delBtn.style.cursor = 'pointer';
+            delBtn.style.transition = 'all 0.2s ease';
+
+            let confirming = false;
             delBtn.addEventListener('click', async () => {
-              if (confirm(`Are you sure you want to remove ${acc.name}?`)) {
-                await window.api.removeAccount(acc.id);
-                loadAccounts();
+              if (!confirming) {
+                confirming = true;
+                delBtn.textContent = 'Confirm? / تأكيد';
+                delBtn.style.backgroundColor = '#ea4335';
+                delBtn.style.color = '#ffffff';
+                setTimeout(() => {
+                  confirming = false;
+                  delBtn.textContent = 'Remove';
+                  delBtn.style.backgroundColor = 'transparent';
+                  delBtn.style.color = '#ea4335';
+                }, 3500);
+                return;
               }
+              delBtn.disabled = true;
+              await window.api.removeAccount(acc.id);
+              loadAccounts();
             });
             item.appendChild(delBtn);
           }
@@ -353,13 +380,79 @@
     }
 
     const settingsAddAccountBtn = document.getElementById('settingsAddAccountBtn');
+    const settingsAddForm = document.getElementById('settingsAddForm');
+    const settingsAccountNameInput = document.getElementById('settingsAccountNameInput');
+    const settingsColorPicker = document.getElementById('settingsColorPicker');
+    const settingsCancelAddBtn = document.getElementById('settingsCancelAddBtn');
+    const settingsSaveAddBtn = document.getElementById('settingsSaveAddBtn');
+
+    const SETTINGS_PALETTE = [
+      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
+      '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
+    ];
+    let selectedSettingsColor = SETTINGS_PALETTE[1];
+
+    if (settingsColorPicker) {
+      settingsColorPicker.innerHTML = '';
+      SETTINGS_PALETTE.forEach((col, idx) => {
+        const dot = document.createElement('div');
+        dot.style.width = '24px';
+        dot.style.height = '24px';
+        dot.style.borderRadius = '50%';
+        dot.style.backgroundColor = col;
+        dot.style.cursor = 'pointer';
+        dot.style.boxSizing = 'border-box';
+        dot.style.border = idx === 1 ? '2px solid var(--text-primary)' : '2px solid transparent';
+        dot.style.transition = 'transform 0.15s ease';
+        dot.addEventListener('click', () => {
+          settingsColorPicker.childNodes.forEach(d => { d.style.border = '2px solid transparent'; });
+          dot.style.border = '2px solid var(--text-primary)';
+          selectedSettingsColor = col;
+        });
+        settingsColorPicker.appendChild(dot);
+      });
+    }
+
     if (settingsAddAccountBtn) {
-      settingsAddAccountBtn.addEventListener('click', async () => {
-        const name = prompt('Enter account name (e.g. Work):');
-        if (name && name.trim()) {
-          await window.api.addAccount({ name: name.trim() });
-          loadAccounts();
+      settingsAddAccountBtn.addEventListener('click', () => {
+        settingsAddForm.style.display = 'block';
+        settingsAccountNameInput.value = '';
+        setTimeout(() => settingsAccountNameInput.focus(), 60);
+      });
+    }
+
+    if (settingsCancelAddBtn) {
+      settingsCancelAddBtn.addEventListener('click', () => {
+        settingsAddForm.style.display = 'none';
+      });
+    }
+
+    if (settingsSaveAddBtn) {
+      settingsSaveAddBtn.addEventListener('click', async () => {
+        const name = settingsAccountNameInput.value.trim();
+        if (!name) {
+          settingsAccountNameInput.focus();
+          return;
         }
+        settingsSaveAddBtn.disabled = true;
+        try {
+          if (window.api && window.api.addAccount) {
+            await window.api.addAccount({ name, color: selectedSettingsColor });
+            settingsAddForm.style.display = 'none';
+            await loadAccounts();
+          }
+        } catch (e) {
+          console.error('Failed to add account from settings:', e);
+        } finally {
+          settingsSaveAddBtn.disabled = false;
+        }
+      });
+    }
+
+    if (settingsAccountNameInput) {
+      settingsAccountNameInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') settingsSaveAddBtn.click();
+        if (e.key === 'Escape') settingsCancelAddBtn.click();
       });
     }
 

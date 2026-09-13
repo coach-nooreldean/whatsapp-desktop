@@ -66,6 +66,8 @@ const accountsMgr = new AccountsManager();
 const accountViews = new Map(); // id -> { view, account, cssKeys, loadedAt }
 let sidebarView = null;
 let activeAccountId = accountsMgr.getActiveId();
+let sidebarCollapsed = config.get('view.sidebar-collapsed') === true;
+let sidebarModalOpen = false;
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   const pkg = require('../package.json');
@@ -343,20 +345,29 @@ const notifySidebarState = () => {
       accounts: accountsMgr.getAccounts(),
       activeId: activeAccountId,
       theme: config.get('view.theme') || 'system',
+      collapsed: sidebarCollapsed,
     });
+    sidebarView.webContents.send('sidebar:collapsed-changed', sidebarCollapsed);
   }
 };
 
 const updateLayout = () => {
   if (!win || win.isDestroyed()) return;
   const bounds = win.getContentBounds();
-  const accounts = accountsMgr.getAccounts();
-  const showSidebar = accounts.length > 1;
-  const sidebarWidth = showSidebar ? 56 : 0;
+
+  if (sidebarModalOpen) {
+    if (sidebarView && !sidebarView.webContents.isDestroyed()) {
+      sidebarView.setBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height });
+      sidebarView.setVisible(true);
+    }
+    return;
+  }
+
+  const sidebarWidth = sidebarCollapsed ? 14 : 56;
 
   if (sidebarView && !sidebarView.webContents.isDestroyed()) {
     sidebarView.setBounds({ x: 0, y: 0, width: sidebarWidth, height: bounds.height });
-    sidebarView.setVisible(showSidebar);
+    sidebarView.setVisible(true);
   }
 
   for (const [id, item] of accountViews) {
@@ -373,6 +384,16 @@ const updateLayout = () => {
         item.view.setVisible(false);
       }
     }
+  }
+};
+
+const toggleSidebar = () => {
+  sidebarCollapsed = !sidebarCollapsed;
+  config.set('view.sidebar-collapsed', sidebarCollapsed);
+  config.save();
+  updateLayout();
+  if (sidebarView && !sidebarView.webContents.isDestroyed()) {
+    sidebarView.webContents.send('sidebar:collapsed-changed', sidebarCollapsed);
   }
 };
 
@@ -1690,6 +1711,13 @@ const onKey = (event, input) => {
     return;
   }
 
+  // Ctrl+Alt+S toggles sidebar collapse/expand
+  if (ctrl && input.alt && key === 's') {
+    event.preventDefault();
+    toggleSidebar();
+    return;
+  }
+
   const activeWc = getActiveWebContents();
   const zoom = activeWc ? activeWc.getZoomFactor() : 1;
   if (ctrl && (key === '+' || key === '=')) {
@@ -2464,6 +2492,7 @@ const wireIpc = () => {
       accounts: accountsMgr.getAccounts(),
       activeId: activeAccountId,
       theme: config.get('view.theme') || 'system',
+      collapsed: sidebarCollapsed,
     };
   });
 
@@ -2554,6 +2583,26 @@ const wireIpc = () => {
       }));
     }
     menu.popup({ window: win });
+  });
+
+  ipcMain.on('sidebar:set-collapsed', (event, collapsed) => {
+    sidebarCollapsed = !!collapsed;
+    config.set('view.sidebar-collapsed', sidebarCollapsed);
+    config.save();
+    updateLayout();
+    if (sidebarView && !sidebarView.webContents.isDestroyed()) {
+      sidebarView.webContents.send('sidebar:collapsed-changed', sidebarCollapsed);
+    }
+  });
+
+  ipcMain.on('sidebar:modal-open', () => {
+    sidebarModalOpen = true;
+    updateLayout();
+  });
+
+  ipcMain.on('sidebar:modal-close', () => {
+    sidebarModalOpen = false;
+    updateLayout();
   });
 
   // Settings accounts IPC

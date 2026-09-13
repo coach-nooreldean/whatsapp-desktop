@@ -1,10 +1,10 @@
-# Maintainer: Abdallah Shehawey <shehawey9@gmail.com>
+# Maintainer: Nooreldean <coach.nooreldean@gmail.com>
 pkgname=whatsapp-desktop
-pkgver=1.3.0
+pkgver=1.6.13
 pkgrel=1
-pkgdesc='WhatsApp Web desktop client for Linux with tray integration and Arabic text fixes'
+pkgdesc='WhatsApp Web desktop client for Linux with multi-account support, tray integration and Arabic text fixes'
 arch=('x86_64')
-url='https://github.com/abdallah-shehawey/whatsapp-desktop'
+url='https://github.com/coach-nooreldean/whatsapp-desktop'
 license=('GPL-3.0-or-later')
 # 'dbus' here is the session bus the tray speaks to directly (src/dbus.js), not
 # a library it links: with no bus running there is no tray icon at all.

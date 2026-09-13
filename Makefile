@@ -44,11 +44,13 @@ install: $(ELECTRON)/electron
 	@install -d $(DESTDIR)$(libdir)
 	@cp -a $(ELECTRON)/. $(DESTDIR)$(libdir)/
 	@rm -f $(DESTDIR)$(libdir)/electron
+	@rm -f $(DESTDIR)$(libdir)/$(BIN)
 	@install -m755 $(ELECTRON)/electron $(DESTDIR)$(libdir)/$(BIN)
 	@for f in $(DESTDIR)$(libdir)/locales/*.pak; do \
 	  keep=""; for l in $(LOCALES); do [ "$$(basename $$f .pak)" = "$$l" ] && keep=1; done; \
 	  [ -n "$$keep" ] || rm -f "$$f"; \
 	done
+	@rm -rf $(DESTDIR)$(libdir)/resources/app
 	@install -d $(DESTDIR)$(libdir)/resources/app
 	@cp -a $(APP_FILES) $(DESTDIR)$(libdir)/resources/app/
 	@# Chromium's sandbox uses unprivileged user namespaces where they are
@@ -139,8 +141,9 @@ screenshots:
 	@for s in $(SHOTS); do cp screenshots/$$s.png docs/assets/$$s.png; done
 	@echo "  SHOTS  screenshots/ and docs/assets/"
 
-# Replays a chat list past src/page/inject.js in plain node -- no browser, no
-# account. Every notification bug this client has had lived in that file.
+# Replays notifications, bidi heuristics, wording, styles, fonts, settings,
+# links, tray D-Bus protocol, update checks, accounts, and config in plain
+# node -- no browser, no network, and no real account needed.
 test:
 	@node tools/test-inject.js
 	@node tools/test-bidi.js
@@ -151,6 +154,23 @@ test:
 	@node tools/test-links.js
 	@node tools/test-tray.js
 	@node tools/test-update.js
+	@node tools/test-accounts.js
+	@node tools/test-config.js
+	@node tools/test-privacy.js
+	@node tools/test-lock.js
+	@node tools/test-lock-ui.js
+	@node tools/test-mpris.js
+	@node tools/test-themes.js
+	@node tools/test-hibernation.js
+	@node tools/test-shortcuts-and-permissions.js
+	@node tools/test-palette.js
+	@node tools/test-system-lock.js
+	@node tools/test-custom-css.js
+	@node tools/test-notification-actions.js
+	@node tools/test-storage-maintenance.js
+	@node tools/test-spellcheck-languages.js
+	@node tools/test-global-shortcuts.js
+	@node tools/test-modular-architecture.js
 
 run:
 	@env -u ELECTRON_RUN_AS_NODE npm start
@@ -168,15 +188,22 @@ package-arch:
 	@cd dist && makepkg --clean --cleanbuild --syncdeps --noconfirm
 	@rm -f dist/PKGBUILD
 
+package-appimage:
+	packaging/build-appimage.sh
+
+package-flatpak:
+	@echo "Flatpak manifest available at packaging/io.github.shehawey.whatsapp-desktop.yml"
+	@echo "Build with: flatpak-builder --force-clean build-dir packaging/io.github.shehawey.whatsapp-desktop.yml"
+
 package-source:
 	@mkdir -p dist
 	@git archive --format=tar.gz --prefix=whatsapp-desktop-$(VERSION)/ -o dist/whatsapp-desktop-$(VERSION)-source.tar.gz HEAD
 	@sha256sum dist/* > dist/SHA256SUMS
 	@echo "  SOURCE  dist/whatsapp-desktop-$(VERSION)-source.tar.gz"
 
-package: package-deb package-rpm package-arch package-source
+package: package-deb package-rpm package-arch package-appimage package-source
 
 clean:
 	rm -rf node_modules
 
-.PHONY: all install autostart no-autostart uninstall icons og screenshots test run package-deb package-rpm package-arch package-source package clean
+.PHONY: all install autostart no-autostart uninstall icons og screenshots test run package-deb package-rpm package-arch package-appimage package-flatpak package-source package clean

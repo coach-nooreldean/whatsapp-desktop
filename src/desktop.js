@@ -86,8 +86,28 @@ const fontconfigSans = () => {
 
 const interfaceFont = () => familyOf(gsettings('font-name')) || fontconfigSans();
 
+const portalColorScheme = () => {
+  try {
+    const out = execFileSync('busctl', [
+      '--user', 'call',
+      'org.freedesktop.portal.Desktop',
+      '/org/freedesktop/portal/desktop',
+      'org.freedesktop.portal.Settings',
+      'Read', 'ss',
+      'org.freedesktop.appearance', 'color-scheme',
+    ], { encoding: 'utf8', timeout: 1500 });
+    const match = out.match(/u\s+([0-9]+)/);
+    if (match) {
+      const code = parseInt(match[1], 10);
+      if (code === 2) return 'prefer-light';
+      if (code === 1) return 'prefer-dark';
+    }
+  } catch (e) {}
+  return '';
+};
+
 const prefersDark = () => {
-  const scheme = gsettings('color-scheme');
+  const scheme = gsettings('color-scheme') || portalColorScheme();
   /* Default to dark when the desktop will not say: WhatsApp Web's dark theme is
      what this client has always opened in, and only an explicit light
      preference opts out. */

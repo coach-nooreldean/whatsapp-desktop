@@ -6,11 +6,12 @@
 
 <p align="center">
   WhatsApp for Linux — the web client in a <b>desktop window of its own</b>, on Chromium.<br>
-  Lives in the tray, notifies like a native application, and reads Arabic the way Arabic reads.
+  Multi-account switcher, privacy shield, app lock, media player integration, tray, and native Arabic.
 </p>
 
 <p align="center">
   <a href="https://abdallah-shehawey.github.io/whatsapp-desktop/"><img alt="website" src="https://img.shields.io/badge/site-abdallah--shehawey.github.io%2Fwhatsapp--desktop-38bdf8"></a>
+  <a href="https://github.com/abdallah-shehawey/whatsapp-desktop/releases/latest"><img alt="version" src="https://img.shields.io/badge/version-2.0.0-22c55e"></a>
   <a href="https://abdallah-shehawey.github.io/shinux-repo/"><img alt="packages" src="https://img.shields.io/badge/packages-rpm%20%7C%20deb%20%7C%20arch-f59e0b"></a>
   <img alt="built on" src="https://img.shields.io/badge/built%20on-Electron%2040-22c55e">
   <img alt="license" src="https://img.shields.io/badge/license-GPL--3.0--or--later-64748b">
@@ -77,11 +78,51 @@ the latest release.
   shows. WebGPU is turned off deliberately: on Linux and Wayland its external
   texture path hands video frames back black, and a call camera that renders a
   black 1280×720 rectangle is what that looks like.
-- **Two windows of switches, and no text editor.** Settings (`Ctrl+,`, or the
-  tray) has the theme — system, dark or light — start-at-login, what closing
-  the window does, which sounds you want and the zoom; *Fonts…* has the two
-  scripts. Everything lands the moment you set it. The tray menu itself is four
-  items and stays that way.
+- **Multiple WhatsApp accounts side by side.** Run secondary accounts in
+  isolated partitions (`persist:account_<id>`) alongside your primary account
+  without session interference. Switch instantly with `Ctrl+1` through
+  `Ctrl+9` or via the vertical sidebar. Each account maintains its own unread
+  counts, notifications carry the account name prefix when multiple accounts
+  exist, clicking an account's notification switches directly to that account
+  and chat, and the tray icon and launcher badge reflect aggregate unread
+  messages across all accounts. The sidebar can be collapsed with
+  `Ctrl+Alt+S` or opened to add accounts with `Ctrl+Alt+A`. Background accounts
+  sleep automatically after inactivity (`accounts.hibernation-minutes`) to save memory.
+- **Privacy Shield & Stealth Mode (`Ctrl+Alt+P`).** Prevent shoulder-surfing
+  in public or office spaces with one keypress or the sidebar eye icon. Blurs chat
+  bubbles, incoming and outgoing photos, and contact names. Hovering over any
+  element unblurs it instantly for viewing, and auto-blur can engage
+  automatically whenever the window loses focus.
+- **App Lock & Passcode Protection (`Ctrl+Alt+L`).** Lock WhatsApp with a
+  custom PIN or passcode screen (`src/lock.html`). Configure automatic inactivity
+  timeouts (5 to 60 minutes) or set WhatsApp to lock instantly whenever your
+  desktop screen locks or your system suspends. Quick lock button right in the sidebar.
+- **Command Palette & Quick Switcher (`Ctrl+K`).** Bring up a fast,
+  fuzzy-search Command Palette to jump between accounts, toggle Privacy Shield,
+  lock the app, cycle color themes, clear cache, or access settings without
+  reaching for the mouse.
+- **Linux Desktop MPRIS2 Media Integration.** Full D-Bus MPRIS media service
+  integration. Play, pause, seek, and control playback of voice notes and audio
+  messages directly from GNOME Shell, KDE plasma media widgets, the lock screen,
+  or hardware keyboard media keys.
+- **Full Bilingual Interface & Arabic Keyboard Layouts.** Switch the entire
+  interface between Arabic (`ar`) and English (`en`) from Settings. Quick action
+  buttons in the sidebar provide one-click access to *Fonts & Appearance* and *About*.
+  Every keyboard shortcut is fully mapped to the Arabic keyboard layout
+  (e.g., `Ctrl+ن` for Command Palette, `Ctrl+Alt+ح` for Privacy, `Ctrl+Alt+م` for
+  Lock, `Ctrl+Alt+ش` for Add Account, and `Ctrl+Alt+س` for Sidebar).
+- **Themes & Dynamic Desktop Accents.** Choose from System (follows
+  `xdg-desktop-portal` light/dark mode dynamically), Dark, Light, OLED (pure
+  black for AMOLED screens), Nord, Catppuccin, Dracula, and Tokyo Night.
+  Optionally inherit live system accent colors from Hyprland, Pywal, or Wallust.
+- **Windows of switches, and no text editor.** Settings (`Ctrl+,`, or the
+  tray) has the theme, start-at-login, what closing the window does,
+  multi-account management, privacy shield, app lock, spellcheck languages,
+  media sound toggles, and the zoom; *Fonts…* has the two scripts; *About
+  WhatsApp* shows versions and updates; and a dedicated *Add Account* window
+  (`Ctrl+Alt+A`) lets you add new accounts with customized names and palette
+  colors. The tray menu itself is five clean items (Open/Minimize, Settings,
+  Fonts, About, and Quit) and stays that way.
 - **Says when a new version is out.** *About WhatsApp* in the tray menu has the
   version running, a check against the latest release and a link to the site;
   the client also looks once a day by itself, and the tray item names the
@@ -125,6 +166,19 @@ the latest release.
   image, and *Inspect* for the devtools that are already a `Ctrl+Shift+I` away.
 - **Screen sharing in a call**, over PipeWire on Wayland, offering windows as
   well as whole screens.
+- **Interactive notifications with Mark as Read & quick reply.** Notifications include
+  a direct "Mark as Read" action button to silently dismiss and mark the conversation read
+  without focusing or unminimizing the window, along with inline quick reply support.
+- **Custom user stylesheet support.** Write bespoke CSS in `~/.config/whatsapp-desktop/custom.css`
+  with live hot-reloading when saved, toggleable from Settings or the Command Palette (`Ctrl+K`).
+- **Storage & cache maintenance.** Safely inspect and purge temporary HTTP and shader disk cache
+  with one click or via Command Palette without logging out of any active sessions or deleting IndexedDB.
+- **Multi-language spellchecker.** Full simultaneous bilingual spellchecking for Arabic (`ar`)
+  and English (`en-US`), with quick-toggle language pills in Settings.
+- **System-wide global shortcuts.** Summon or hide WhatsApp anywhere with `Super+Alt+W` and toggle
+  call microphone mute system-wide with `Super+Alt+M` (customizable in Settings).
+- **Native Wayland auto-detection & VA-API video decode.** Launches with `--ozone-platform-hint=auto`
+  and hardware video decode flags enabled on modern Linux desktops, with an easy X11 fallback toggle.
 - Dark or light follows the desktop, links open in your browser, every download
   asks where to put it, `Ctrl` `+`/`-`/`0` zoom and the window size is
   remembered. `Esc` closes the emoji panel whether or not you picked one.
@@ -142,7 +196,7 @@ heights match; every one of them is a real window, photographed by
 </p>
 
 <p align="center">
-  <sub><b>Settings</b> — theme, tray, notifications, zoom &nbsp;·&nbsp;
+  <sub><b>Settings</b> — theme, tray, accounts, notifications, zoom &nbsp;·&nbsp;
   <b>Fonts</b> — one for Latin, one for Arabic &nbsp;·&nbsp;
   <b>About</b> — the version, and whether a newer one is out</sub>
 </p>
@@ -181,12 +235,27 @@ make screenshots # re-photographs the three windows, for the README and the site
 
 ## Keys
 
-| | |
+| Shortcut | Action |
 |---|---|
 | `Ctrl` `+` / `-` / `0` | zoom in, out, reset |
+| `Ctrl+,` | open Settings window |
+| `Ctrl+K` | open Command Palette / quick switcher |
+| `Ctrl+1` – `Ctrl+9` | switch to account 1 through 9 |
+| `Ctrl+Alt+A` | open Add Account window |
+| `Ctrl+Alt+S` | toggle accounts sidebar (collapse / expand) |
+| `Ctrl+Alt+P` | toggle Privacy Shield (Stealth blur) |
+| `Ctrl+Alt+L` | lock application (App Lock passcode) |
+| `Ctrl+R` | reload active conversation view |
+| `Ctrl+W` | close window (hides to tray) |
 | `Ctrl+Shift+I` | devtools |
 | `Ctrl+Q` | quit for real |
+| `Super+Alt+W` | global hotkey: summon or hide WhatsApp window |
+| `Super+Alt+M` | global hotkey: mute/unmute call microphone |
+| `Esc` | close modals, Command Palette, or emoji panel |
 | window close | hides to the tray, stays connected |
+
+> [!NOTE]
+> All shortcuts are mapped to work seamlessly on Arabic keyboard layouts (e.g. `Ctrl+ن` for Command Palette, `Ctrl+Alt+ح` for Privacy, `Ctrl+Alt+م` for Lock, `Ctrl+Alt+ش` for Add Account, `Ctrl+Alt+س` for Sidebar, and Arabic numerals `١`–`٩`).
 
 ## Configuration
 
@@ -194,15 +263,28 @@ make screenshots # re-photographs the three windows, for the README and the site
 
 | Key | Default | What it does |
 |---|---|---|
-| `[view] theme` | `system` | `system` follows the desktop, or force `dark` / `light` |
+| `[view] theme` | `system` | `system` follows the desktop, or force `dark`, `light`, `oled`, `nord`, `catppuccin`, `dracula`, `tokyonight` |
 | `[view] font` | the GNOME interface font | family for everything the client draws |
 | `[view] font-size` | `16` | root font size in pixels — WhatsApp sizes in rem |
 | `[view] zoom` | `1.0` | also set with `Ctrl` `+`/`-` |
 | `[view] force-font` | `true` | draw the page in one family |
+| `[view] sidebar-collapsed` | `false` | whether the multi-account sidebar switcher starts collapsed |
+| `[view] custom-css-enabled` | `false` | inject custom stylesheet from `~/.config/whatsapp-desktop/custom.css` |
+| `[view] hyprland-accent` | `true` | dynamically adopt accent colors from Hyprland, Pywal, or Wallust |
+| `[view] language` | `ar` | interface language: `ar` (Arabic) or `en` (English) |
+| `[privacy] stealth` | `false` | enable Privacy Shield stealth blur on chats, media, and contacts |
+| `[privacy] auto-blur` | `true` | blur automatically when the window loses focus |
+| `[privacy] hover-reveal` | `true` | temporarily reveal blurred items when hovering with the mouse |
+| `[privacy] blur-contacts` | `true` | also blur contact names and numbers in the chat list |
+| `[lock] enabled` | `false` | require PIN/passcode to access WhatsApp |
+| `[lock] timeout` | `15` | auto-lock inactivity timeout in minutes (`0` disables) |
+| `[lock] auto-lock-on-system-lock` | `true` | lock immediately when system screen locks or suspends |
+| `[accounts] hibernation-minutes` | `30` | sleep inactive background accounts to conserve memory (`0` disables) |
+| `[mpris] enabled` | `true` | Linux D-Bus MPRIS2 media player service for audio notes |
 | `[fonts] latin-inherit` | `true` | Latin follows the desktop font; off to choose one |
 | `[fonts] latin-family` | the desktop font | family for Latin letters, digits and punctuation |
 | `[fonts] latin-size` | `100` | its size, as a percentage of the family's own |
-| `[fonts] latin-bold`, `latin-italic` | `false` | draw Latin in the family's bold or italic **face** — nothing is synthesised, so a family without one cannot be made to have it |
+| `[fonts] latin-bold`, `latin-italic` | `false` | draw Latin in the family's bold or italic **face** — nothing is synthesised |
 | `[fonts] arabic-inherit` | `true` | the same switch for Arabic, separately |
 | `[fonts] arabic-family` | whatever the system draws Arabic in | family for Arabic, even in the middle of an English line |
 | `[fonts] arabic-size` | `100` | Arabic on its own, beside the Latin in the same line |
@@ -211,40 +293,64 @@ make screenshots # re-photographs the three windows, for the README and the site
 | `[behaviour] close-to-tray` | `true` | closing the window leaves the client running |
 | `[behaviour] minimize-to-tray` | `false` | minimise is not close |
 | `[behaviour] spellcheck` | `true` | Chromium's own, in the box you type in |
-| `[behaviour] raise` | `auto` | how the window is brought to the front when a banner is clicked. `auto` picks one and corrects itself once from what the window actually did; `activate` (ask the compositor) and `remap` (take it down and open it again) are taken as given |
+| `[behaviour] spellcheck-languages` | `en-US,ar` | active spellcheck dictionaries (comma-separated: `ar,en-US,en-GB,fr,es,de`) |
+| `[behaviour] raise` | `auto` | how the window is brought to the front (`auto`, `activate`, `remap`) |
+| `[shortcuts] global-enabled` | `true` | enable OS-wide global keyboard shortcuts |
+| `[shortcuts] global-toggle` | `Super+Alt+W` | global hotkey to summon or hide the window |
+| `[shortcuts] global-mute` | `Super+Alt+M` | global hotkey to toggle active call microphone |
+| `[system] force-x11` | `false` | force X11 / XWayland mode instead of native Wayland |
+| `[system] hardware-acceleration` | `true` | VA-API hardware video decode acceleration |
 | `[notifications] enabled` | `true` | off hands notifications back to Chromium |
 | `[notifications] sound` | `true` | a tone for the banners this client raises |
 | `[notifications] outgoing-sound` | `false` | WhatsApp's own tone for a message *you* send |
-| `[notifications] whatsapp-sound` | `false` | let WhatsApp play its own tone for a message arriving, instead of the desktop tone this client plays either way |
+| `[notifications] whatsapp-sound` | `false` | let WhatsApp play its own arrival tone |
 | `[notifications] banner-seconds` | `12` | before a banner is refiled silently |
-| `[notifications] hide-preview` | `false` | on, a banner names the chat and the kind of message and never the words |
+| `[notifications] hide-preview` | `false` | on, a banner names the chat and never the words |
 | `[media] ask-where-to-save` | `true` | every download asks; off, they land in `~/Downloads` |
-| `[media] download-dir` | — | where the last one went, so the chooser opens there; written by the client |
-| `[media] download-stickers` | `true` | fetch stickers whether or not photos are — the phone has no sticker switch either |
-| `[media] hide-controls-when-paused` | `true` | take the desktop's media card down when a voice note is paused, rather than when it ends |
+| `[media] download-dir` | — | where the last one went, so the chooser opens there |
+| `[media] download-stickers` | `true` | fetch stickers whether or not photos are, like the phone |
+| `[media] hide-controls-when-paused` | `true` | take the desktop's media card down when a voice note is paused |
 | `[links] claim-scheme` | `true` | open `whatsapp:` links here rather than in a browser tab |
-| `[updates] check` | `true` | the daily look for a newer release; off, nothing asks by itself and *Check* in About still does |
+| `[updates] check` | `true` | the daily look for a newer release; off, only About's *Check* asks |
 
-State lives in `~/.local/share/whatsapp-desktop`.
+Configuration lives in `~/.config/whatsapp-desktop/whatsapp-desktop.conf`.
+Account metadata lives in `~/.config/whatsapp-desktop/accounts.json`.
+Primary session and application state live in `~/.local/share/whatsapp-desktop`, while secondary accounts use isolated partitions under Chromium partition storage (`persist:account_<id>`).
 
 ## Layout
 
-| | |
+| Path | Purpose |
 |---|---|
-| `src/main.js` | window, session, tray, notifications, switches |
-| `src/preload.js` | the bridge — the page's world on one side, IPC on the other |
-| `src/page/inject.js` | the chat-list watcher and the notification shim, in WhatsApp's own world |
-| `src/notify.js` | the banner policy |
-| `src/style.js` | the user stylesheet — the font, and the room Arabic needs |
-| `src/settings.html`, `src/fonts.html` | the two windows of switches, and `src/window.css`, which is the look of both |
-| `src/about.html` | the About window, and the update check it shows |
-| `src/update.js` | asks GitHub for the latest release, and compares |
-| `src/fonts.js`, `src/tray.js`, `src/config.js`, `src/desktop.js`, `src/sound.js`, `src/debug.js` | |
+| `src/main.js` | application entry point, lifecycle, and view orchestration |
+| `src/preload.js` | bridge for WhatsApp Web views — page world on one side, IPC on the other |
+| `src/accounts.js` | multi-account manager (metadata, partitions, palette colors, unread tracking, hibernation) |
+| `src/privacy.js` | Privacy Shield & Stealth blur manager |
+| `src/lock.js`, `src/lock.html`, `src/lock-preload.js` | App Lock passcode security & lock screen |
+| `src/palette.html`, `src/palette-preload.js`, `src/core/palette.js` | Command Palette & Quick Switcher modal |
+| `src/mpris.js` | Linux D-Bus MPRIS2 media player service |
+| `src/themes.js` | themes engine (OLED, Nord, Dracula, etc.) & Hyprland/Pywal accent detector |
+| `src/sidebar.html`, `src/sidebar.css`, `src/sidebar-preload.js` | collapsible vertical accounts sidebar with Ar/En tooltips |
+| `src/add-account.html` | dedicated Add Account window |
+| `src/settings.html`, `src/settings-preload.js` | comprehensive bilingual Settings window |
+| `src/fonts.html`, `src/fonts.js` | Fonts window and font catalogue |
+| `src/about.html`, `src/about-preload.js` | About window and update checker UI |
+| `src/update.js` | queries GitHub releases for updates |
+| `src/config/` (`defaults.js`, `ini.js`) | INI configuration reader, writer, and defaults |
+| `src/notify.js` | desktop banner management, avatar caching, and notification timeout |
+| `src/autostart.js` | desktop autostart entry management (`~/.config/autostart/`) |
+| `src/bidi.js` | Arabic and Latin text direction heuristics |
+| `src/links.js` | `whatsapp:` URI scheme and web URL parser |
+| `src/wording.js` | notification phrases and media marks |
+| `src/style.js` | user stylesheets, custom font injection, and chat layout adjustments |
+| `src/tray.js`, `src/tray-sni.js`, `src/dbus.js` | StatusNotifierItem D-Bus and AppIndicator tray integration |
+| `src/desktop.js`, `src/sound.js`, `src/debug.js` | desktop environment integration, notification tones, debug tools |
+| `src/core/` | modular subsystems (lifecycle, shortcuts, permissions, screen, views, IPC) |
+| `src/page/inject.js`, `src/page/avatar.js`, `src/page/media.js`, `src/page/pictures.js`, `src/page/store.js` | in-page injection scripts |
 | `tools/make-icons.py` | regenerates `data/icons` — `make icons`, never hand-edit the PNGs |
 | `tools/make-og.py` | redraws the site's link-preview card — `make og` |
-| `tools/capture-windows.js` | photographs the three windows above — `make screenshots`, which also copies them to `docs/assets` |
+| `tools/capture-windows.js` | photographs client windows — `make screenshots` |
 | `docs/` | the landing page, served by GitHub Pages from `main` |
-| `tools/test-inject.js`, `tools/test-style.js`, `tools/test-settings.js` | `make test` |
+| `tools/test-*.js` | comprehensive unit test suite (`make test`) |
 
 ## Notifications, when they do not appear
 

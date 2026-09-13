@@ -52,7 +52,12 @@ const node = id => ({
   style: {}, dataset: {}, options: [],
   classes: new Set(),
   classList: {
-    toggle(name, on) { on ? this.owner.classes.add(name) : this.owner.classes.delete(name); },
+    toggle(name, on) {
+      if (on === true) this.owner.classes.add(name);
+      else if (on === false) this.owner.classes.delete(name);
+      else if (this.owner.classes.has(name)) this.owner.classes.delete(name);
+      else this.owner.classes.add(name);
+    },
     add(name) { this.owner.classes.add(name); },
     remove(name) { this.owner.classes.delete(name); },
     contains(name) { return this.owner.classes.has(name); },
@@ -61,6 +66,9 @@ const node = id => ({
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
   appendChild(child) { this.options.push(child); },
   setAttribute() {}, removeAttribute() {},
+  getAttribute(name) { return this[name] || this.dataset[name] || null; },
+  querySelectorAll(sel) { return []; },
+  querySelector(sel) { return null; },
   scrollIntoView() { this.scrolled = true; },
   /* Awaited, because every handler in these windows saves over IPC. */
   fire(type) { return Promise.all((this.listeners[type] || []).map(fn => fn())); },
@@ -104,6 +112,14 @@ const open = async (file, answer) => {
       close() { called.push(['close']); },
       restart() { called.push(['restart']); },
       onSettingsChanged() {},
+      getAccounts: async () => [],
+      getActiveAccountId: async () => 'default',
+      getLockStatus: async () => ({ enabled: false, hasPasscode: false, timeout: 15 }),
+      getCacheSize: async () => 1024 * 1024 * 12,
+      clearCache: async () => ({ ok: true }),
+      openCustomCss: async () => ({ ok: true }),
+      reloadCustomCss: async () => ({ ok: true }),
+      setSpellcheckLanguages: async langs => { saved.push(['behaviour.spellcheck-languages', langs.join(',')]); return { ok: true }; },
     },
   };
 
@@ -132,7 +148,7 @@ const open = async (file, answer) => {
     assert.strictEqual(w.el('zoomVal').textContent, '100%');
     await w.el('zoomIn').fire('click');
     assert.strictEqual(w.last('view.zoom'), 1.1);
-    assert.strictEqual(w.el('zoomVal').textContent, '110%', 'and the window says so');
+    assert.strictEqual(w.el('zoomVal').textContent, '110%', 'zoomIn button updates displayed percentage text');
     await w.el('zoomOut').fire('click');
     assert.strictEqual(w.last('view.zoom'), 1);
 
@@ -143,6 +159,11 @@ const open = async (file, answer) => {
       ['notifyToggle', 'notifications.enabled'],
       ['notifySoundToggle', 'notifications.sound'],
       ['outgoingSoundToggle', 'notifications.outgoing-sound'],
+      ['customCssToggle', 'view.custom-css-enabled'],
+      ['globalShortcutsToggle', 'shortcuts.global-enabled'],
+      ['spellcheckToggle', 'behaviour.spellcheck'],
+      ['forceX11Toggle', 'system.force-x11'],
+      ['hardwareAccelToggle', 'system.hardware-acceleration'],
     ];
     for (const [id, key] of switches) {
       w.el(id).checked = false;
@@ -150,12 +171,35 @@ const open = async (file, answer) => {
       assert.strictEqual(w.last(key), false, id + ' saves ' + key);
     }
 
+    w.el('globalToggleShortcutInput').value = 'Super+Alt+X';
+    await w.el('globalToggleShortcutInput').fire('change');
+    assert.strictEqual(w.last('shortcuts.global-toggle'), 'Super+Alt+X');
+
+    w.el('globalMuteShortcutInput').value = 'Super+Alt+N';
+    await w.el('globalMuteShortcutInput').fire('change');
+    assert.strictEqual(w.last('shortcuts.global-mute'), 'Super+Alt+N');
+
+    await w.el('clearCacheBtn').fire('click');
+    await w.el('openCustomCssBtn').fire('click');
+    await w.el('reloadCustomCssBtn').fire('click');
+
+    /* Language switching between Arabic and English */
+    await w.el('langEnBtn').fire('click');
+    assert.strictEqual(w.last('view.language'), 'en');
+    assert.ok(w.el('langEnBtn').classList.contains('active'), 'clicking langEnBtn adds active class');
+    assert.ok(!w.el('langArBtn').classList.contains('active'), 'langArBtn loses active class');
+
+    await w.el('langArBtn').fire('click');
+    assert.strictEqual(w.last('view.language'), 'ar');
+    assert.ok(w.el('langArBtn').classList.contains('active'), 'clicking langArBtn adds active class');
+    assert.ok(!w.el('langEnBtn').classList.contains('active'), 'langEnBtn loses active class');
+
     /* The theme lives here and only here: it came out of the tray menu, so this
        is the one way to it and it had better work. */
     await w.el('themeLight').fire('click');
     assert.deepStrictEqual(w.called.pop(), ['theme', 'light']);
-    assert.ok(w.el('themeLight').classList.contains('active'), 'and the button says so');
-    assert.ok(!w.el('themeDark').classList.contains('active'), 'one at a time');
+    assert.ok(w.el('themeLight').classList.contains('active'), 'clicking themeLight adds active class');
+    assert.ok(!w.el('themeDark').classList.contains('active'), 'themeDark loses active class when themeLight is active');
 
     w.el('autostartToggle').checked = false;
     await w.el('autostartToggle').fire('change');
@@ -170,7 +214,7 @@ const open = async (file, answer) => {
     const html = read('settings.html');
     assert.doesNotMatch(html, /chat-font-size|chatFont/, 'no key and no control for it');
     assert.doesNotMatch(read('fonts.html'), /chat-font-size|chatFont/,
-                        'and it did not follow the fonts into their window');
+                        'fonts.html does not contain legacy chat font size controls');
   }
 
   /* -------------------------------------------------------------- fonts */
@@ -189,7 +233,7 @@ const open = async (file, answer) => {
     await w.el('arabicInherit').fire('change');
     assert.strictEqual(w.last('fonts.arabic-inherit'), false);
     assert.ok(!w.el('arabicControls').classList.contains('locked'), 'Arabic is loose now');
-    assert.ok(w.el('latinControls').classList.contains('locked'), 'and Latin is untouched');
+    assert.ok(w.el('latinControls').classList.contains('locked'), 'unlocking Arabic leaves Latin locked');
     assert.strictEqual(w.el('latinFamily').disabled, true);
 
     w.el('arabicFamily').value = 'Vazirmatn';
@@ -237,7 +281,7 @@ const open = async (file, answer) => {
     delete answer.fonts;
     const w = await open('fonts.html', answer);
     assert.strictEqual(w.el('fontsSection').hidden, true, 'no catalogue, no controls');
-    assert.strictEqual(w.el('noCatalogue').hidden, false, 'and it says so');
+    assert.strictEqual(w.el('noCatalogue').hidden, false, 'missing catalogue displays explanation message');
   }
 
   console.log('settings and fonts window checks pass');

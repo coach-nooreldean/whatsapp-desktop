@@ -8,6 +8,9 @@
 </head>
 <body>
 
+  <!-- Pull handle shown when collapsed -->
+  <div class="pull-handle" id="pullHandle" title="إظهار الشريط الجانبي (Ctrl+Alt+S)"></div>
+
   <div class="accounts-container" id="accountsList"></div>
 
   <button class="add-btn" id="addAccountBtn" title="إضافة حساب جديد (Ctrl+Alt+A)">
@@ -17,67 +20,118 @@
     </svg>
   </button>
 
-  <div class="tooltip" id="tooltip"></div>
+  <button class="action-btn" id="privacyBtn" title="درع الخصوصية / Privacy Shield (Ctrl+Alt+P)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </button>
 
-  <!-- Add Account Modal -->
-  <div class="modal-overlay" id="addModal">
-    <div class="modal-card">
-      <div class="modal-title">
-        <span>إضافة حساب واتساب جديد</span>
-      </div>
-      <input type="text" class="modal-input" id="accountNameInput" placeholder="اسم الحساب (مثال: العمل)" maxlength="20">
-      <div class="palette-grid" id="paletteGrid"></div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="cancelAddBtn">إلغاء</button>
-        <button class="btn-primary" id="saveAddBtn">إضافة</button>
-      </div>
-    </div>
-  </div>
+  <button class="action-btn" id="lockBtn" title="قفل التطبيق / Lock App (Ctrl+Alt+L)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  </button>
+
+  <button class="action-btn" id="settingsBtn" title="الإعدادات / Settings (Ctrl+,)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+
+  <button class="action-btn" id="fontsBtn" title="الخطوط والمظهر / Fonts">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 7 4 4 20 4 20 7"/>
+      <line x1="9" y1="20" x2="15" y2="20"/>
+      <line x1="12" y1="4" x2="12" y2="20"/>
+    </svg>
+  </button>
+
+  <button class="action-btn" id="aboutBtn" title="عن الواتس اب / About WhatsApp">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  </button>
+
+  <!-- Toggle / Collapse button at the bottom -->
+  <button class="toggle-btn" id="toggleSidebarBtn" title="طي الشريط الجانبي (Ctrl+Alt+S)">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  </button>
+
+  <div class="tooltip" id="tooltip"></div>
 
   <script>
     const accountsList = document.getElementById('accountsList');
     const addAccountBtn = document.getElementById('addAccountBtn');
+    const privacyBtn = document.getElementById('privacyBtn');
+    const lockBtn = document.getElementById('lockBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const fontsBtn = document.getElementById('fontsBtn');
+    const aboutBtn = document.getElementById('aboutBtn');
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+    const pullHandle = document.getElementById('pullHandle');
     const tooltip = document.getElementById('tooltip');
-    const addModal = document.getElementById('addModal');
-    const accountNameInput = document.getElementById('accountNameInput');
-    const paletteGrid = document.getElementById('paletteGrid');
-    const cancelAddBtn = document.getElementById('cancelAddBtn');
-    const saveAddBtn = document.getElementById('saveAddBtn');
 
-    const PALETTE = [
-      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
-      '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
-    ];
-    let selectedColor = PALETTE[1];
-    let currentState = { accounts: [], activeId: 'default', theme: 'dark' };
-
-    // Setup color picker dots
-    PALETTE.forEach((col, idx) => {
-      const dot = document.createElement('div');
-      dot.className = 'color-dot' + (idx === 1 ? ' selected' : '');
-      dot.style.backgroundColor = col;
-      dot.addEventListener('click', () => {
-        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
-        dot.classList.add('selected');
-        selectedColor = col;
-      });
-      paletteGrid.appendChild(dot);
-    });
+    let currentState = { accounts: [], activeId: 'default', theme: 'dark', language: 'ar' };
+    let isCollapsed = false;
 
     function getInitials(name) {
       if (!name) return 'W';
       const clean = name.trim();
-      const parts = clean.split(/\s+/);
-      if (parts.length > 1) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
+      if (clean.length <= 2) return clean.toUpperCase();
+      const words = clean.split(/\s+/);
+      if (words.length > 1) {
+        const w1 = words[0].replace(/^(ال)/, '') || words[0];
+        const w2 = words[1].replace(/^(ال)/, '') || words[1];
+        return (w1[0] + w2[0]).toUpperCase();
       }
-      return clean.slice(0, 2).toUpperCase();
+      const single = clean.replace(/^(ال)/, '') || clean;
+      return single.slice(0, 2).toUpperCase();
     }
 
     function render(state) {
       if (!state) return;
       currentState = state;
+      const isAr = state.language !== 'en';
+      document.documentElement.lang = isAr ? 'ar' : 'en';
       document.documentElement.setAttribute('data-theme', state.theme || 'dark');
+      if (typeof state.collapsed === 'boolean') {
+        setCollapsedUI(state.collapsed);
+      }
+
+      // Localize tooltips based on selected language
+      if (addAccountBtn) {
+        addAccountBtn.title = isAr ? 'إضافة حساب جديد (Ctrl+Alt+A)' : 'Add New Account (Ctrl+Alt+A)';
+      }
+      if (privacyBtn) {
+        privacyBtn.title = isAr ? 'درع الخصوصية / تمويه المحادثات (Ctrl+Alt+P)' : 'Privacy Shield / Stealth Blur (Ctrl+Alt+P)';
+        privacyBtn.classList.toggle('active', !!state.privacyActive);
+      }
+      if (lockBtn) {
+        lockBtn.title = isAr
+          ? (state.hasPasscode ? 'قفل التطبيق (Ctrl+Alt+L)' : 'تعيين رمز مرور لقفل التطبيق (Ctrl+Alt+L)')
+          : (state.hasPasscode ? 'Lock App (Ctrl+Alt+L)' : 'Set App Passcode (Ctrl+Alt+L)');
+      }
+      if (settingsBtn) {
+        settingsBtn.title = isAr ? 'الإعدادات (Ctrl+,)' : 'Settings (Ctrl+,)';
+      }
+      if (fontsBtn) {
+        fontsBtn.title = isAr ? 'الخطوط والمظهر' : 'Fonts & Appearance';
+      }
+      if (aboutBtn) {
+        aboutBtn.title = isAr ? 'عن الواتس اب' : 'About WhatsApp';
+      }
+      if (toggleSidebarBtn) {
+        toggleSidebarBtn.title = isAr ? 'طي الشريط الجانبي (Ctrl+Alt+S)' : 'Collapse Sidebar (Ctrl+Alt+S)';
+      }
+      if (pullHandle) {
+        pullHandle.title = isAr ? 'إظهار الشريط الجانبي (Ctrl+Alt+S)' : 'Expand Sidebar (Ctrl+Alt+S)';
+      }
 
       accountsList.innerHTML = '';
       const accounts = state.accounts || [];
@@ -86,13 +140,11 @@
         const wrap = document.createElement('div');
         wrap.className = 'account-item-wrap' + (acc.id === state.activeId ? ' active' : '');
 
-        // Active pill
         const pill = document.createElement('div');
         pill.className = 'active-pill';
         pill.style.backgroundColor = acc.color || '#25D366';
         wrap.appendChild(pill);
 
-        // Button
         const btn = document.createElement('button');
         btn.className = 'account-btn';
         btn.textContent = getInitials(acc.name);
@@ -100,27 +152,32 @@
         btn.style.color = acc.color || '#e9edef';
         btn.style.borderColor = acc.id === state.activeId ? (acc.color || '#00a884') : 'transparent';
 
-        // Unread badge
         const badge = document.createElement('div');
         badge.className = 'unread-badge' + (acc.unread > 0 ? ' visible' : '');
         badge.textContent = acc.unread > 99 ? '99+' : acc.unread;
         btn.appendChild(badge);
 
-        // Click to switch
+        if (acc.isSleeping) {
+          btn.classList.add('sleeping');
+          const sleepBadge = document.createElement('div');
+          sleepBadge.className = 'sleep-badge';
+          sleepBadge.textContent = '💤';
+          btn.appendChild(sleepBadge);
+        }
+
         btn.addEventListener('click', () => {
           if (window.api && acc.id !== currentState.activeId) {
             window.api.switchAccount(acc.id);
           }
         });
 
-        // Right-click context menu
         btn.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           if (window.api) window.api.showContextMenu(acc.id);
         });
 
-        // Hover tooltip
-        btn.addEventListener('mouseenter', (e) => {
+        btn.addEventListener('mouseenter', () => {
+          if (isCollapsed) return;
           const rect = btn.getBoundingClientRect();
           tooltip.textContent = `${acc.name} (Ctrl+${index + 1})`;
           tooltip.style.top = `${rect.top + (rect.height / 2) - 14}px`;
@@ -132,44 +189,93 @@
         });
 
         wrap.appendChild(btn);
+
+        if (acc.id !== 'default') {
+          const delBtn = document.createElement('button');
+          delBtn.className = 'account-del-btn';
+          delBtn.innerHTML = '&times;';
+          delBtn.title = `حذف الحساب / Remove ${acc.name}`;
+          delBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (window.api && window.api.removeAccount) {
+              await window.api.removeAccount(acc.id);
+            }
+          });
+          wrap.appendChild(delBtn);
+        }
+
         accountsList.appendChild(wrap);
       });
     }
 
     function openAddModal() {
-      accountNameInput.value = '';
-      addModal.classList.add('open');
-      setTimeout(() => accountNameInput.focus(), 50);
-    }
-
-    function closeAddModal() {
-      addModal.classList.remove('open');
+      if (window.api && window.api.openAddModal) {
+        window.api.openAddModal();
+      }
     }
 
     addAccountBtn.addEventListener('click', openAddModal);
-    cancelAddBtn.addEventListener('click', closeAddModal);
 
-    saveAddBtn.addEventListener('click', async () => {
-      const name = accountNameInput.value.trim();
-      if (!name) {
-        accountNameInput.focus();
-        return;
-      }
-      if (window.api) {
-        await window.api.addAccount({ name, color: selectedColor });
-        closeAddModal();
+    if (privacyBtn) {
+      privacyBtn.addEventListener('click', () => {
+        if (window.api && window.api.togglePrivacy) window.api.togglePrivacy();
+      });
+    }
+
+    if (lockBtn) {
+      lockBtn.addEventListener('click', () => {
+        if (window.api && window.api.lockApp) window.api.lockApp();
+      });
+    }
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        if (window.api && window.api.openSettings) window.api.openSettings();
+      });
+    }
+
+    if (fontsBtn) {
+      fontsBtn.addEventListener('click', () => {
+        if (window.api && window.api.openFonts) window.api.openFonts();
+      });
+    }
+
+    if (aboutBtn) {
+      aboutBtn.addEventListener('click', () => {
+        if (window.api && window.api.openAbout) window.api.openAbout();
+      });
+    }
+
+    toggleSidebarBtn.addEventListener('click', () => {
+      if (window.api && window.api.setCollapsed) {
+        window.api.setCollapsed(true);
       }
     });
 
-    accountNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') saveAddBtn.click();
-      if (e.key === 'Escape') closeAddModal();
+    pullHandle.addEventListener('click', () => {
+      if (window.api && window.api.setCollapsed) {
+        window.api.setCollapsed(false);
+      }
     });
+
+    document.body.addEventListener('mouseenter', () => {
+      if (isCollapsed && window.api && window.api.setCollapsed) {
+        window.api.setCollapsed(false);
+      }
+    });
+
+    function setCollapsedUI(collapsed) {
+      isCollapsed = !!collapsed;
+      document.body.classList.toggle('collapsed', isCollapsed);
+      if (isCollapsed) tooltip.classList.remove('show');
+    }
 
     if (window.api) {
       window.api.getInitialState().then(render).catch(console.error);
       window.api.onStateChange(render);
-      window.api.onOpenAddModal(openAddModal);
+      if (window.api.onCollapsedChange) {
+        window.api.onCollapsedChange(setCollapsedUI);
+      }
     }
   </script>
 </body>

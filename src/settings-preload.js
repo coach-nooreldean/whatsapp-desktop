@@ -15,9 +15,23 @@ contextBridge.exposeInMainWorld('api', {
      restart would finish what it started -- see changeSetting in main.js. */
   restart: () => ipcRenderer.send('settings:restart'),
   getAccounts: () => ipcRenderer.invoke('accounts:get'),
+  getActiveAccountId: () => ipcRenderer.invoke('accounts:get-active'),
+  getPalette: () => ipcRenderer.invoke('accounts:get-palette'),
+  switchAccount: id => ipcRenderer.invoke('accounts:switch', id),
   addAccount: data => ipcRenderer.invoke('accounts:add', data),
   removeAccount: id => ipcRenderer.invoke('accounts:remove', id),
+  setPasscode: pin => ipcRenderer.invoke('lock:set-passcode', pin),
+  removePasscode: currentPin => ipcRenderer.invoke('lock:remove-passcode', currentPin),
+  getLockStatus: () => ipcRenderer.invoke('lock:get-status'),
+  getCacheSize: () => ipcRenderer.invoke('storage:get-cache-size'),
+  clearCache: () => ipcRenderer.invoke('storage:clear-cache'),
+  openCustomCss: () => ipcRenderer.invoke('custom-css:open'),
+  reloadCustomCss: () => ipcRenderer.invoke('custom-css:reload'),
+  setSpellcheckLanguages: langs => ipcRenderer.invoke('spellcheck:set-languages', langs),
   onSettingsChanged: callback => {
     ipcRenderer.on('settings:changed', (_, data) => callback(data));
+  },
+  onSettingsReload: callback => {
+    ipcRenderer.on('settings:reload', () => callback());
   },
 });

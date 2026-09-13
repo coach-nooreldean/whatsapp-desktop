@@ -1239,6 +1239,19 @@ const start = ({ send, log, fetchAvatar, faceFor }) => {
     return false;
   };
 
+  const markRead = chatId => {
+    if (!S) return false;
+    const chat = chatOf(chatId);
+    if (!chat) return false;
+    try {
+      if (typeof chat.sendSeen === 'function') {
+        chat.sendSeen();
+        return true;
+      }
+    } catch (e) {}
+    return open(chatId);
+  };
+
   /*
    * And opening a STORY, which is the other half of that and not a conversation
    * at all.
@@ -1355,6 +1368,7 @@ const start = ({ send, log, fetchAvatar, faceFor }) => {
   return {
     get ready() { return !!S; },
     open,
+    markRead,
     openStory,
     activeChat,
     unreadNow,

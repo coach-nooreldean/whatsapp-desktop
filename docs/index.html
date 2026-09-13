@@ -111,7 +111,7 @@
 <span class="c">==&gt; rpm system detected, installing shinux-release</span>
 <span class="c">==&gt; done.</span>
 <span class="p">$</span> sudo dnf install --refresh whatsapp-desktop
-<span class="c">Installed:</span> <span class="g">whatsapp-desktop-<span data-version>1.6.1</span>-1.x86_64</span>
+<span class="c">Installed:</span> <span class="g">whatsapp-desktop-<span data-version>2.0.0</span>-1.x86_64</span>
 <span class="p">$</span> whatsapp-desktop<span class="cursor"></span></code></pre>
       </div>
       <ul class="hero-facts">
@@ -211,6 +211,64 @@
         WhatsApp's ever sees a message — it is linked from your phone exactly like a
         browser, and unlinked the same way.</p>
       </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Multiple accounts side by side</h3>
+        <p>Switch between personal, work, and secondary accounts instantly using the
+        vertical sidebar or <kbd>Ctrl</kbd>+<kbd>1</kbd>&ndash;<kbd>9</kbd>. Each account runs in an
+        isolated partition so sessions never conflict, with separate unread badges
+        and notifications tagged by account name.</p>
+      </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/><line x1="2" y1="2" x2="22" y2="22"/></svg></div>
+        <h3>Privacy Shield &amp; stealth blur</h3>
+        <p>Prevent shoulder-surfing in offices or coffee shops with <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd> or
+        the sidebar eye button. Blurs chat messages, photos, and contact names, with instant
+        hover-to-reveal on demand and auto-blur whenever the window loses focus.</p>
+      </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>App Lock &amp; passcode protection</h3>
+        <p>Protect your WhatsApp with a PIN passcode (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>L</kbd>).
+        Auto-locks after configurable inactivity (5&ndash;60 mins) or instantly whenever your
+        desktop screen locks or computer suspends, with a quick lock button on the sidebar.</p>
+      </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+        <h3>Command Palette &amp; quick switcher</h3>
+        <p>Press <kbd>Ctrl</kbd>+<kbd>K</kbd> to open an instant spotlight fuzzy search.
+        Switch accounts, trigger privacy shield, lock the app, cycle themes, clear
+        cache, or jump to settings without taking your fingers off the keyboard.</p>
+      </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+        <h3>Linux Desktop MPRIS2 media control</h3>
+        <p>Full D-Bus MPRIS media integration for voice notes and audio messages.
+        Play, pause, seek, and control volume directly from GNOME Shell, KDE Plasma
+        media widgets, lock screen controls, or hardware media keys.</p>
+      </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+        <h3>Bilingual interface &amp; Arabic shortcuts</h3>
+        <p>Switch between Arabic and English interfaces at will. Every keyboard shortcut
+        is natively mapped to the Arabic keyboard layout (e.g. <kbd>Ctrl</kbd>+<kbd>ن</kbd> for
+        Command Palette, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>ح</kbd> for Privacy,
+        <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>م</kbd> for Lock) with simultaneous bilingual spellcheck.</p>
+      </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a7 7 0 0 0 0 14c1.66 0 3-1.34 3-3 0-.79-.31-1.5-.81-2.04A2.002 2.002 0 0 1 14 9.5a2 2 0 0 1 2-2h1.5A4.5 4.5 0 0 0 12 2z"/></svg></div>
+        <h3>Themes, custom CSS &amp; Hyprland accents</h3>
+        <p>Choose from System, Dark, Light, OLED black, Nord, Catppuccin, Dracula, and Tokyo Night.
+        Dynamically adopts system accent colors from Hyprland, Pywal, or Wallust, plus
+        live custom stylesheet injection from <code>~/.config/whatsapp-desktop/custom.css</code>.</p>
+      </article>
     </div>
 
     <div class="showcase">
@@ -249,6 +307,24 @@
           <dt>Zoom Level</dt>
           <dd>Scales the whole interface, pictures and spacing and all — the same as
           <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>.</dd>
+
+          <dt>Multi-Account Management</dt>
+          <dd>Add secondary isolated accounts, assign custom names and avatar colors, and switch or remove accounts.</dd>
+
+          <dt>Privacy Shield &amp; Stealth</dt>
+          <dd>Blur messages, photos, and contacts to prevent shoulder surfing, with hover-to-reveal and auto-blur on focus loss.</dd>
+
+          <dt>App Lock &amp; Passcode</dt>
+          <dd>PIN protection with customizable auto-lock timeout and lock on system screen lock/suspend.</dd>
+
+          <dt>Interface Language</dt>
+          <dd>Toggle full application interface between Arabic and English.</dd>
+
+          <dt>Global Shortcuts</dt>
+          <dd>Summon or hide WhatsApp (<kbd>Super</kbd>+<kbd>Alt</kbd>+<kbd>W</kbd>) and mute microphone (<kbd>Super</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd>) system-wide.</dd>
+
+          <dt>Custom Stylesheet</dt>
+          <dd>Inject custom CSS from <code>~/.config/whatsapp-desktop/custom.css</code> with live hot reloading.</dd>
 
         </dl>
         <p class="note">All of it lands in
@@ -418,9 +494,9 @@ EOF</code></pre>
 
     <div class="card panel" id="i-file" role="tabpanel" aria-labelledby="t-file" hidden>
       <p class="step">Install a file you already downloaded</p>
-<pre><code>sudo dnf install ./whatsapp-desktop-<span data-version>1.6.1</span>-1.x86_64.rpm
-sudo apt install ./whatsapp-desktop_<span data-version>1.6.1</span>_amd64.deb
-sudo pacman -U ./whatsapp-desktop-<span data-version>1.6.1</span>-1-x86_64.pkg.tar.zst</code></pre>
+<pre><code>sudo dnf install ./whatsapp-desktop-<span data-version>2.0.0</span>-1.x86_64.rpm
+sudo apt install ./whatsapp-desktop_<span data-version>2.0.0</span>_amd64.deb
+sudo pacman -U ./whatsapp-desktop-<span data-version>2.0.0</span>-1-x86_64.pkg.tar.zst</code></pre>
       <p class="note">The leading <code>./</code> matters: without it both
       <code>dnf</code> and <code>apt</code> look for a package by that name in a
       repository instead of reading the file. Grab the file from
@@ -610,9 +686,19 @@ sudo pacman -U ./whatsapp-desktop-*.pkg.tar.zst  <span class="c"># Arch</span></
     <div class="keycaps">
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></span><span>zoom in, out, reset</span></div>
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>,</kbd></span><span>Settings</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>K</kbd></span><span>Command Palette</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>1</kbd>&ndash;<kbd>9</kbd></span><span>switch account</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>A</kbd></span><span>add account</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>S</kbd></span><span>toggle sidebar</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>P</kbd></span><span>Privacy Shield</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>L</kbd></span><span>lock app (PIN)</span></div>
+      <div class="keycap"><span class="keys"><kbd>Super</kbd><kbd>Alt</kbd><kbd>W</kbd></span><span>global summon / hide</span></div>
+      <div class="keycap"><span class="keys"><kbd>Super</kbd><kbd>Alt</kbd><kbd>M</kbd></span><span>global mute mic</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>R</kbd></span><span>reload chat</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>W</kbd></span><span>close window</span></div>
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>I</kbd></span><span>devtools</span></div>
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Q</kbd></span><span>quit for real</span></div>
-      <div class="keycap"><span class="keys"><kbd>Esc</kbd></span><span>close the emoji panel</span></div>
+      <div class="keycap"><span class="keys"><kbd>Esc</kbd></span><span>close modals &amp; panels</span></div>
       <div class="keycap"><span class="keys">window close</span><span>hides to the tray, stays connected</span></div>
     </div>
 
@@ -629,11 +715,36 @@ sudo pacman -U ./whatsapp-desktop-*.pkg.tar.zst  <span class="c"># Arch</span></
 
         <tbody>
           <tr class="grp"><th colspan="3" scope="colgroup">[view]</th></tr>
-          <tr><td><code>theme</code></td><td><code>system</code></td><td>follows the desktop, or force <code>dark</code> / <code>light</code></td></tr>
+          <tr><td><code>theme</code></td><td><code>system</code></td><td>follows desktop, or force <code>dark</code>, <code>light</code>, <code>oled</code>, <code>nord</code>, <code>dracula</code>, etc.</td></tr>
           <tr><td><code>font</code></td><td>GNOME&#39;s</td><td>family for everything the client draws</td></tr>
           <tr><td><code>font-size</code></td><td><code>16</code></td><td>size of the whole interface, in px</td></tr>
           <tr><td><code>zoom</code></td><td><code>1.0</code></td><td>also set with <kbd>Ctrl</kbd>+<kbd>+</kbd>/<kbd>-</kbd></td></tr>
           <tr><td><code>force-font</code></td><td><code>true</code></td><td>draw the page in one family</td></tr>
+          <tr><td><code>sidebar-collapsed</code></td><td><code>false</code></td><td>whether the multi-account sidebar switcher starts collapsed</td></tr>
+          <tr><td><code>custom-css-enabled</code></td><td><code>false</code></td><td>inject custom stylesheet from <code>~/.config/whatsapp-desktop/custom.css</code></td></tr>
+          <tr><td><code>hyprland-accent</code></td><td><code>true</code></td><td>dynamically adopt system accent colors from Hyprland, Pywal, or Wallust</td></tr>
+          <tr><td><code>language</code></td><td><code>ar</code></td><td>interface language: <code>ar</code> (Arabic) or <code>en</code> (English)</td></tr>
+        </tbody>
+
+        <tbody>
+          <tr class="grp"><th colspan="3" scope="colgroup">[privacy]</th></tr>
+          <tr><td><code>stealth</code></td><td><code>false</code></td><td>enable Privacy Shield stealth blur on chats, media, and contacts</td></tr>
+          <tr><td><code>auto-blur</code></td><td><code>true</code></td><td>blur automatically when the window loses focus</td></tr>
+          <tr><td><code>hover-reveal</code></td><td><code>true</code></td><td>temporarily reveal blurred items when hovering with the mouse</td></tr>
+          <tr><td><code>blur-contacts</code></td><td><code>true</code></td><td>also blur contact names and numbers in the chat list</td></tr>
+        </tbody>
+
+        <tbody>
+          <tr class="grp"><th colspan="3" scope="colgroup">[lock]</th></tr>
+          <tr><td><code>enabled</code></td><td><code>false</code></td><td>require PIN/passcode to access WhatsApp</td></tr>
+          <tr><td><code>timeout</code></td><td><code>15</code></td><td>auto-lock inactivity timeout in minutes (<code>0</code> disables)</td></tr>
+          <tr><td><code>auto-lock-on-system-lock</code></td><td><code>true</code></td><td>lock immediately when system screen locks or suspends</td></tr>
+        </tbody>
+
+        <tbody>
+          <tr class="grp"><th colspan="3" scope="colgroup">[accounts] &middot; [mpris]</th></tr>
+          <tr><td><code>[accounts] hibernation-minutes</code></td><td><code>30</code></td><td>sleep background accounts to conserve memory (<code>0</code> disables)</td></tr>
+          <tr><td><code>[mpris] enabled</code></td><td><code>true</code></td><td>Linux D-Bus MPRIS2 media player service for audio notes</td></tr>
         </tbody>
 
         <tbody>
@@ -667,16 +778,28 @@ sudo pacman -U ./whatsapp-desktop-*.pkg.tar.zst  <span class="c"># Arch</span></
           <tr><td><code>close-to-tray</code></td><td><code>true</code></td><td>closing leaves the client running</td></tr>
           <tr><td><code>minimize-to-tray</code></td><td><code>false</code></td><td>minimise is not close</td></tr>
           <tr><td><code>spellcheck</code></td><td><code>true</code></td><td>Chromium&#39;s own, in the box you type in</td></tr>
+          <tr><td><code>spellcheck-languages</code></td><td><code>en-US,ar</code></td><td>active spellcheck languages (<code>ar,en-US,en-GB,fr,es,de</code>)</td></tr>
+          <tr><td><code>raise</code></td><td><code>auto</code></td><td>how the window is brought to front (<code>auto</code>, <code>activate</code>, <code>remap</code>)</td></tr>
         </tbody>
 
         <tbody>
-          <tr class="grp"><th colspan="3" scope="colgroup">[window] &middot; [links] &middot; [updates] <span>&mdash; one key each</span></th></tr>
+          <tr class="grp"><th colspan="3" scope="colgroup">[shortcuts] &middot; [system]</th></tr>
+          <tr><td><code>[shortcuts] global-enabled</code></td><td><code>true</code></td><td>enable OS-wide global keyboard shortcuts</td></tr>
+          <tr><td><code>[shortcuts] global-toggle</code></td><td><code>Super+Alt+W</code></td><td>global hotkey to summon or hide the window</td></tr>
+          <tr><td><code>[shortcuts] global-mute</code></td><td><code>Super+Alt+M</code></td><td>global hotkey to toggle active call microphone</td></tr>
+          <tr><td><code>[system] force-x11</code></td><td><code>false</code></td><td>force X11 / XWayland mode instead of native Wayland</td></tr>
+          <tr><td><code>[system] hardware-acceleration</code></td><td><code>true</code></td><td>VA-API hardware video decode acceleration</td></tr>
+        </tbody>
+
+        <tbody>
+          <tr class="grp"><th colspan="3" scope="colgroup">[window] &middot; [links] &middot; [updates]</th></tr>
           <tr><td><code>[window] width</code>, <code>height</code></td><td><code>1200×800</code></td><td>remembered on exit</td></tr>
           <tr><td><code>[links] claim-scheme</code></td><td><code>true</code></td><td>open <code>whatsapp:</code> links here, not in a browser tab</td></tr>
           <tr><td><code>[updates] check</code></td><td><code>true</code></td><td>the daily look for a newer release; off, only About&#39;s <em>Check</em> asks</td></tr>
         </tbody>
       </table>
       </div>
+      <p class="note" style="margin-top: 14px; margin-bottom: 0;"><strong>Storage:</strong> Config is kept in <code>~/.config/whatsapp-desktop/whatsapp-desktop.conf</code>, and account definitions in <code>~/.config/whatsapp-desktop/accounts.json</code>. Primary session data lives in <code>~/.local/share/whatsapp-desktop</code>; secondary accounts use isolated Chromium partitions under <code>persist:account_&lt;id&gt;</code>.</p>
     </div>
 
     <div class="callout">

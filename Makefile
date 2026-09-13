@@ -44,11 +44,13 @@ install: $(ELECTRON)/electron
 	@install -d $(DESTDIR)$(libdir)
 	@cp -a $(ELECTRON)/. $(DESTDIR)$(libdir)/
 	@rm -f $(DESTDIR)$(libdir)/electron
+	@rm -f $(DESTDIR)$(libdir)/$(BIN)
 	@install -m755 $(ELECTRON)/electron $(DESTDIR)$(libdir)/$(BIN)
 	@for f in $(DESTDIR)$(libdir)/locales/*.pak; do \
 	  keep=""; for l in $(LOCALES); do [ "$$(basename $$f .pak)" = "$$l" ] && keep=1; done; \
 	  [ -n "$$keep" ] || rm -f "$$f"; \
 	done
+	@rm -rf $(DESTDIR)$(libdir)/resources/app
 	@install -d $(DESTDIR)$(libdir)/resources/app
 	@cp -a $(APP_FILES) $(DESTDIR)$(libdir)/resources/app/
 	@# Chromium's sandbox uses unprivileged user namespaces where they are

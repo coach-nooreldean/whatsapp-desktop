@@ -82,6 +82,17 @@ class StyleManager {
         console.warn('Failed to insert user CSS for account view: %s', err.message);
       }
     }
+
+    const currentTheme = this.config.get('view.theme') || 'system';
+    const isDark = (currentTheme === 'system')
+      ? desktop.prefersDark()
+      : (currentTheme !== 'light');
+    item.view.webContents.executeJavaScript(`(() => {
+      if (document.body) {
+        document.body.classList.toggle('dark', ${isDark});
+        document.body.classList.toggle('light', ${!isDark});
+      }
+    })()`).catch(() => {});
   }
 
   async drawStyle() {
@@ -113,21 +124,24 @@ class StyleManager {
     return this.styling;
   }
 
-  setTheme(theme, { notifySidebarState, notifyWindowsTheme }) {
+  setTheme(theme, opts = {}) {
+    const { notifySidebarState, notifyWindowsTheme } = opts || {};
     this.config.set('view.theme', theme);
     this.config.save();
 
-    if (theme === 'light') {
-      nativeTheme.themeSource = 'light';
-    } else if (theme === 'system') {
-      nativeTheme.themeSource = desktop.prefersDark() ? 'dark' : 'light';
-    } else {
-      nativeTheme.themeSource = 'dark';
+    if (nativeTheme) {
+      if (theme === 'light') {
+        nativeTheme.themeSource = 'light';
+      } else if (theme === 'system') {
+        nativeTheme.themeSource = desktop.prefersDark() ? 'dark' : 'light';
+      } else {
+        nativeTheme.themeSource = 'dark';
+      }
     }
 
-    const win = this.getMainWindow();
-    if (win && !win.isDestroyed()) {
-      let bg = nativeTheme.shouldUseDarkColors ? '#0b141a' : '#ffffff';
+    const win = typeof this.getMainWindow === 'function' ? this.getMainWindow() : null;
+    if (win && !win.isDestroyed() && typeof win.setBackgroundColor === 'function') {
+      let bg = (nativeTheme && nativeTheme.shouldUseDarkColors) ? '#0b141a' : '#ffffff';
       if (theme === 'oled') bg = '#000000';
       else if (theme === 'nord') bg = '#2e3440';
       else if (theme === 'catppuccin') bg = '#1e1e2e';

@@ -83,6 +83,7 @@ body.collapsed {
 
 body.collapsed .accounts-container,
 body.collapsed .add-btn,
+body.collapsed .action-btn,
 body.collapsed .toggle-btn {
   display: none !important;
 }

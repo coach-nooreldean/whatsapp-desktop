@@ -17,17 +17,26 @@ function updateZoom(viewMgr, value) {
 }
 
 function updateTheme(options, value) {
-  const { paletteController, viewMgr, styleMgr } = options;
+  const { paletteController, viewMgr, styleMgr, dialogMgr } = options;
   paletteController.setTheme(value || 'system');
   viewMgr.notifySidebarState();
-  styleMgr.applyStyle();
+  if (styleMgr && styleMgr.setTheme) {
+    styleMgr.setTheme(value || 'system', {
+      notifySidebarState: () => viewMgr.notifySidebarState(),
+      notifyWindowsTheme: t => {
+        if (dialogMgr && dialogMgr.notifyWindowsTheme) dialogMgr.notifyWindowsTheme(t);
+      },
+    });
+  } else if (styleMgr && styleMgr.applyStyle) {
+    styleMgr.applyStyle();
+  }
 }
 
 function updatePrivacy(privacyMgr, config, applyPrivacyState) {
   privacyMgr.manualStealth = !!config.get('privacy.stealth');
   privacyMgr.autoBlur = config.get('privacy.auto-blur') !== false;
   privacyMgr.hoverReveal = config.get('privacy.hover-reveal') !== false;
-  privacyMgr.blurContacts = !!config.get('privacy.blur-contacts');
+  privacyMgr.blurContacts = config.get('privacy.blur-contacts') !== false;
   applyPrivacyState();
 }
 
@@ -52,6 +61,8 @@ function createSettingsHandler(options) {
     configureFonts,
     app,
     getMainWindow,
+    dialogMgr,
+    lockMgr,
   } = options;
 
   return function changeSetting(key, value) {
@@ -61,7 +72,7 @@ function createSettingsHandler(options) {
     if (key === 'view.zoom') {
       updateZoom(viewMgr, value);
     } else if (key === 'view.theme') {
-      updateTheme({ paletteController, viewMgr, styleMgr }, value);
+      updateTheme({ paletteController, viewMgr, styleMgr, dialogMgr }, value);
     } else if (key === 'view.hyprland-accent' || key === 'view.font-size' || key === 'view.custom-css-enabled') {
       styleMgr.applyStyle();
     } else if (key.startsWith('privacy.')) {
@@ -76,6 +87,12 @@ function createSettingsHandler(options) {
       });
     } else if (key.startsWith('behaviour.spellcheck')) {
       updateSpellcheck(viewMgr, config);
+    } else if (key.startsWith('lock.')) {
+      if (lockMgr && key === 'lock.enabled' && value && !lockMgr.hasPasscode()) {
+        config.set('lock.enabled', false);
+        config.save();
+      }
+      if (viewMgr && viewMgr.notifySidebarState) viewMgr.notifySidebarState();
     } else if (key.startsWith('system.')) {
       return { ok: true, restart: true };
     } else if (key.startsWith('fonts.') || key === 'view.font' || key === 'view.force-font') {

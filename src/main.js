@@ -157,6 +157,8 @@ const changeSetting = createSettingsHandler({
   configureFonts,
   app,
   getMainWindow,
+  dialogMgr,
+  lockMgr,
 });
 
 const quit = () => {

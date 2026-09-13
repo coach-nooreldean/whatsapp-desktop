@@ -55,7 +55,13 @@ function createAccountWebContentsView({
   };
 
   view.webContents.on('before-input-event', (event, input) => {
-    if (input.type === 'keyDown' && (input.control || input.meta) && input.key === ',') {
+    if (
+      input.type === 'keyDown' &&
+      (input.control || input.meta) &&
+      !input.alt &&
+      !input.shift &&
+      ((input.code && input.code.toLowerCase() === 'comma') || input.key === ',' || input.key === '،' || input.key === 'و')
+    ) {
       event.preventDefault();
       if (handlers.openSettings) handlers.openSettings();
       return;

@@ -14,6 +14,7 @@ function registerAccountsIpc(ctx) {
     viewManager,
     dialogManager,
     getMainWindow,
+    lockMgr,
   } = ctx;
 
   ipcMain.handle('sidebar:get-state', () => {
@@ -23,11 +24,17 @@ function registerAccountsIpc(ctx) {
       theme: config.get('view.theme') || 'system',
       collapsed: viewManager.sidebarCollapsed,
       privacyActive: privacyMgr.isBlurred(),
+      hasPasscode: lockMgr ? lockMgr.hasPasscode() : false,
     };
   });
 
   ipcMain.on('sidebar:toggle-privacy', () => ctx.togglePrivacy());
   ipcMain.on('sidebar:lock-app', () => ctx.lockApp());
+  ipcMain.on('sidebar:open-settings', () => {
+    if (dialogManager && dialogManager.openSettings) {
+      dialogManager.openSettings();
+    }
+  });
   ipcMain.on('sidebar:switch-account', (event, id) => viewManager.switchToAccount(id, ctx.viewHandlers));
 
   ipcMain.handle('sidebar:remove-account', async (event, id) => {

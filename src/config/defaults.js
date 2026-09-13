@@ -61,7 +61,7 @@ const DEFAULTS = {
   'privacy.stealth': false,
   'privacy.auto-blur': true,
   'privacy.hover-reveal': true,
-  'privacy.blur-contacts': false,
+  'privacy.blur-contacts': true,
 
   /* App Lock & Passcode */
   'lock.enabled': false,

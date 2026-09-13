@@ -33,6 +33,13 @@
     </svg>
   </button>
 
+  <button class="action-btn" id="settingsBtn" title="الإعدادات / Settings (Ctrl+,)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+
   <!-- Toggle / Collapse button at the bottom -->
   <button class="toggle-btn" id="toggleSidebarBtn" title="طي الشريط الجانبي (Ctrl+Alt+S)">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -47,6 +54,7 @@
     const addAccountBtn = document.getElementById('addAccountBtn');
     const privacyBtn = document.getElementById('privacyBtn');
     const lockBtn = document.getElementById('lockBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
     const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
     const pullHandle = document.getElementById('pullHandle');
     const tooltip = document.getElementById('tooltip');
@@ -77,6 +85,11 @@
       }
       if (privacyBtn) {
         privacyBtn.classList.toggle('active', !!state.privacyActive);
+      }
+      if (lockBtn) {
+        lockBtn.title = state.hasPasscode
+          ? 'قفل التطبيق / Lock App (Ctrl+Alt+L)'
+          : 'تعيين رمز مرور لقفل التطبيق / Set App Passcode (Ctrl+Alt+L)';
       }
 
       accountsList.innerHTML = '';
@@ -171,6 +184,12 @@
     if (lockBtn) {
       lockBtn.addEventListener('click', () => {
         if (window.api && window.api.lockApp) window.api.lockApp();
+      });
+    }
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => {
+        if (window.api && window.api.openSettings) window.api.openSettings();
       });
     }
 

@@ -72,7 +72,7 @@ class LockManager {
 
   removePasscode(currentPin) {
     if (!this.hasPasscode()) return true;
-    if (!this.verify(currentPin)) {
+    if (currentPin && !this.verify(currentPin)) {
       throw new Error('Incorrect passcode');
     }
     this.salt = null;

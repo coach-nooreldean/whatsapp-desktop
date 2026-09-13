@@ -3,7 +3,7 @@
  */
 'use strict';
 
-const { handleShortcut } = require('./shortcuts.js');
+const { handleShortcut, isKeyMatch } = require('./shortcuts.js');
 
 function adjustZoom(viewMgr, config, delta) {
   const activeWc = viewMgr.getActiveWebContents();
@@ -66,20 +66,19 @@ function createKeyHandler(options) {
 
 function onPopupKey(popup, event, input, quit) {
   if (input.type !== 'keyDown' || popup.isDestroyed()) return;
-  const ctrl = input.control || input.meta;
-  const key = input.key.toLowerCase();
+  const ctrl = !!(input.control || input.meta);
 
-  if (ctrl && key === 'q') {
+  if (ctrl && !input.alt && !input.shift && isKeyMatch(input, 'q', 'ض')) {
     event.preventDefault();
     if (typeof quit === 'function') quit();
     return;
   }
-  if (ctrl && key === 'w') {
+  if (ctrl && !input.alt && !input.shift && isKeyMatch(input, 'w', 'ص')) {
     event.preventDefault();
     popup.close();
     return;
   }
-  if (ctrl && input.shift && key === 'i') {
+  if (ctrl && !input.alt && input.shift && isKeyMatch(input, 'i', 'ه')) {
     event.preventDefault();
     popup.webContents.toggleDevTools();
   }

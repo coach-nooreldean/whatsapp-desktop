@@ -83,6 +83,99 @@ try {
   check('handleShortcut handles Ctrl+2', numHandled, true);
   check('actions.switchAccountByIndex was passed index 1', accountSwitched, 1);
 
+  // 4. Arabic Keyboard Layout Shortcut Tests
+  let arabicPrivacyToggled = false;
+  let arabicAppLocked = false;
+  let arabicSidebarToggled = false;
+  let arabicAddAccountOpened = false;
+  let arabicSettingsOpened = false;
+  let arabicAccountSwitched = -1;
+  let arabicQuitCalled = false;
+  let arabicWindowClosed = false;
+
+  const arabicActions = {
+    togglePrivacy: () => { arabicPrivacyToggled = true; },
+    lockApp: () => { arabicAppLocked = true; },
+    toggleSidebar: () => { arabicSidebarToggled = true; },
+    openAddAccount: () => { arabicAddAccountOpened = true; },
+    openSettings: () => { arabicSettingsOpened = true; },
+    switchAccountByIndex: (idx) => { arabicAccountSwitched = idx; },
+    quit: () => { arabicQuitCalled = true; },
+    closeWindow: () => { arabicWindowClosed = true; },
+  };
+
+  // Test Ctrl+Alt+P with Arabic key 'ح' and code 'KeyP'
+  const arPHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: true, key: 'ح', code: 'KeyP' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+Alt+P (ح)', arPHandled, true);
+  check('arabicActions.togglePrivacy was invoked', arabicPrivacyToggled, true);
+
+  // Test Ctrl+Alt+L with Arabic key 'م' (even if code is missing)
+  const arLHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: true, key: 'م' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+Alt+L (م without code)', arLHandled, true);
+  check('arabicActions.lockApp was invoked', arabicAppLocked, true);
+
+  // Test Ctrl+Alt+S with Arabic key 'س'
+  const arSHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: true, key: 'س', code: 'KeyS' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+Alt+S (س)', arSHandled, true);
+  check('arabicActions.toggleSidebar was invoked', arabicSidebarToggled, true);
+
+  // Test Ctrl+Alt+A with Arabic key 'ش'
+  const arAHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: true, key: 'ش', code: 'KeyA' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+Alt+A (ش)', arAHandled, true);
+  check('arabicActions.openAddAccount was invoked', arabicAddAccountOpened, true);
+
+  // Test Ctrl+, with Arabic key '،' and code 'Comma'
+  const arSettingsHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: false, key: '،', code: 'Comma' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+, (،)', arSettingsHandled, true);
+  check('arabicActions.openSettings was invoked', arabicSettingsOpened, true);
+
+  // Test Ctrl+W with Arabic key 'ص'
+  const arWHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: false, key: 'ص', code: 'KeyW' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+W (ص)', arWHandled, true);
+  check('arabicActions.closeWindow was invoked', arabicWindowClosed, true);
+
+  // Test Ctrl+Q with Arabic key 'ض'
+  const arQHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: false, key: 'ض', code: 'KeyQ' },
+    arabicActions
+  );
+  check('handleShortcut handles Arabic Ctrl+Q (ض)', arQHandled, true);
+  check('arabicActions.quit was invoked', arabicQuitCalled, true);
+
+  // Test Ctrl+٣ (Eastern Arabic numeral 3 -> account index 2)
+  const arDigitHandled = handleShortcut(
+    { preventDefault: fakePreventDefault },
+    { type: 'keyDown', control: true, alt: false, key: '٣' },
+    arabicActions
+  );
+  check('handleShortcut handles Eastern Arabic Ctrl+٣', arDigitHandled, true);
+  check('arabicActions.switchAccountByIndex was passed index 2', arabicAccountSwitched, 2);
+
 } catch (err) {
   failures++;
   console.error('Unexpected error in test-shortcuts-and-permissions.js:', err);

@@ -115,6 +115,7 @@ class DialogManager {
     if (this.settingsWin && !this.settingsWin.isDestroyed()) {
       this.settingsWin.show();
       this.settingsWin.focus();
+      this.settingsWin.webContents.send('settings:reload');
       return this.settingsWin;
     }
 

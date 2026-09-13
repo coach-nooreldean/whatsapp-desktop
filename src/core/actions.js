@@ -29,8 +29,51 @@ function togglePrivacy(viewMgr, privacyMgr) {
   applyPrivacyState(viewMgr, privacyMgr);
 }
 
-function lockApp(lockMgr, dialogMgr) {
-  if (!lockMgr.isEnabled()) return;
+async function lockApp(lockMgr, dialogMgr) {
+  if (!lockMgr.hasPasscode()) {
+    const win = dialogMgr.getMainWindow ? dialogMgr.getMainWindow() : null;
+    const { response } = await dialog.showMessageBox(win && !win.isDestroyed() ? win : null, {
+      type: 'info',
+      title: 'قفل التطبيق / App Lock',
+      message: 'لم يتم تعيين رمز مرور بعد (No Passcode Set)',
+      detail: 'لحماية محادثاتك وقفل التطبيق، يرجى تعيين رمز مرور (PIN/Passcode) أولاً من قسم الأمان في الإعدادات.\n\nTo lock the application and protect your privacy, please set a passcode first in Settings.',
+      buttons: ['تعيين رمز مرور الآن / Set Passcode Now', 'إلغاء / Cancel'],
+      defaultId: 0,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (response === 0) {
+      const settingsWin = dialogMgr.openSettings();
+      if (settingsWin && !settingsWin.isDestroyed()) {
+        const focusInput = () => {
+          settingsWin.webContents.executeJavaScript(`(() => {
+            const row = document.getElementById('lockPasscodeSetupRow');
+            const input = document.getElementById('settingsPinInput');
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (input) {
+              setTimeout(() => {
+                input.focus();
+                input.style.boxShadow = '0 0 0 2px var(--accent, #00a884)';
+                setTimeout(() => { input.style.boxShadow = ''; }, 2000);
+              }, 200);
+            }
+          })()`).catch(() => {});
+        };
+        if (settingsWin.webContents.isLoading()) {
+          settingsWin.webContents.once('did-finish-load', focusInput);
+        } else {
+          focusInput();
+        }
+      }
+    }
+    return;
+  }
+
+  if (!lockMgr.isEnabled()) {
+    lockMgr.config.set('lock.enabled', true);
+    lockMgr.config.save();
+  }
+
   lockMgr.lock();
   dialogMgr.showLockWindow();
 }

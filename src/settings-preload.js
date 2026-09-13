@@ -31,4 +31,7 @@ contextBridge.exposeInMainWorld('api', {
   onSettingsChanged: callback => {
     ipcRenderer.on('settings:changed', (_, data) => callback(data));
   },
+  onSettingsReload: callback => {
+    ipcRenderer.on('settings:reload', () => callback());
+  },
 });

@@ -605,13 +605,13 @@
         // Lock status
         if (window.api.getLockStatus) {
           const lockStatus = await window.api.getLockStatus();
-          if (lockEnabledToggle) lockEnabledToggle.checked = !!lockStatus.enabled;
+          if (lockEnabledToggle) lockEnabledToggle.checked = !!(lockStatus.enabled && lockStatus.hasPasscode);
           if (lockTimeoutSelect) lockTimeoutSelect.value = String(lockStatus.timeout != null ? lockStatus.timeout : 15);
           if (lockOnSystemLockToggle) lockOnSystemLockToggle.checked = data.lockOnSystemLock !== false;
           if (lockStatusDesc) {
             lockStatusDesc.textContent = lockStatus.hasPasscode
-              ? 'Passcode is configured and active'
-              : 'Protect WhatsApp with a PIN or passcode';
+              ? (lockStatus.enabled ? 'رمز المرور مفعل ومحمي / Passcode protection is active' : 'تم تعيين رمز مرور (القفل معطل حالياً) / Passcode set (lock currently disabled)')
+              : 'لم يتم تعيين رمز مرور بعد / Protect WhatsApp with a PIN or passcode';
           }
           if (removePinBtn) {
             removePinBtn.style.display = lockStatus.hasPasscode ? 'inline-block' : 'none';
@@ -713,7 +713,30 @@
     // App Lock Handlers
     if (lockEnabledToggle) {
       lockEnabledToggle.addEventListener('change', async () => {
-        if (window.api) await window.api.setSetting('lock.enabled', lockEnabledToggle.checked);
+        if (!window.api) return;
+        const lockStatus = window.api.getLockStatus ? await window.api.getLockStatus() : null;
+        if (lockEnabledToggle.checked && (!lockStatus || !lockStatus.hasPasscode)) {
+          lockEnabledToggle.checked = false;
+          if (pinFeedback) {
+            pinFeedback.style.color = '#eab308';
+            pinFeedback.textContent = 'يرجى إدخال رمز المرور أدناه وحفظه أولاً لتفعيل القفل / Please set and save a passcode below first';
+          }
+          if (settingsPinInput) {
+            settingsPinInput.focus();
+            settingsPinInput.style.boxShadow = '0 0 0 2px #eab308';
+            setTimeout(() => { settingsPinInput.style.boxShadow = ''; }, 2000);
+          }
+          return;
+        }
+        await window.api.setSetting('lock.enabled', lockEnabledToggle.checked);
+        if (pinFeedback) {
+          pinFeedback.style.color = '#00a884';
+          pinFeedback.textContent = lockEnabledToggle.checked
+            ? 'تم تفعيل قفل التطبيق / App lock enabled'
+            : 'تم تعطيل قفل التطبيق / App lock disabled';
+          setTimeout(() => { pinFeedback.textContent = ''; }, 3000);
+        }
+        await loadSettings();
       });
     }
     if (lockTimeoutSelect) {
@@ -750,18 +773,18 @@
     }
     if (removePinBtn) {
       removePinBtn.addEventListener('click', async () => {
-        const pin = prompt('Enter your current passcode to remove protection:');
-        if (!pin) return;
         try {
           if (window.api && window.api.removePasscode) {
-            await window.api.removePasscode(pin);
+            await window.api.removePasscode();
             pinFeedback.style.color = '#00a884';
-            pinFeedback.textContent = 'Passcode removed';
-            loadSettings();
+            pinFeedback.textContent = 'تم إزالة رمز المرور بنجاح / Passcode removed successfully';
+            settingsPinInput.value = '';
+            settingsPinInput.placeholder = 'New PIN / Passcode (min 4 chars)';
+            await loadSettings();
           }
         } catch (e) {
           pinFeedback.style.color = '#ef4444';
-          pinFeedback.textContent = e.message || 'Failed to remove passcode';
+          pinFeedback.textContent = e.message || 'فشل إزالة رمز المرور / Failed to remove passcode';
         }
       });
     }
@@ -926,6 +949,20 @@
           if (data.theme !== undefined) applyThemeToUI(data.theme);
           if (data.autostart !== undefined) autostartToggle.checked = !!data.autostart;
         }
+      });
+    }
+
+    if (typeof window.addEventListener === 'function') {
+      window.addEventListener('focus', () => {
+        loadSettings();
+        loadAccounts();
+      });
+    }
+
+    if (window.api && window.api.onSettingsReload) {
+      window.api.onSettingsReload(() => {
+        loadSettings();
+        loadAccounts();
       });
     }
 

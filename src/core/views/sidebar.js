@@ -14,6 +14,25 @@ class SidebarController {
     this.getMainWindow = getMainWindow;
     this.sidebarView = null;
     this.collapsed = this.config.get('view.sidebar-collapsed') === true;
+    this.win = null;
+  }
+
+  setWindow(win) {
+    this.win = win;
+    if (win && !win.isDestroyed() && win.contentView && this.sidebarView) {
+      if (!win.contentView.children.includes(this.sidebarView)) {
+        win.contentView.addChildView(this.sidebarView);
+      }
+    }
+  }
+
+  getMainWindowInstance() {
+    if (this.win && !this.win.isDestroyed()) return this.win;
+    if (typeof this.getMainWindow === 'function') {
+      const win = this.getMainWindow();
+      if (win && !win.isDestroyed()) return win;
+    }
+    return null;
   }
 
   get isCollapsed() {
@@ -28,9 +47,15 @@ class SidebarController {
     return this.sidebarView;
   }
 
-  init() {
-    const win = this.getMainWindow();
+  init(winPassed) {
+    const win = winPassed || this.getMainWindowInstance();
     if (!win || win.isDestroyed()) return;
+    if (this.sidebarView) {
+      if (win.contentView && !win.contentView.children.includes(this.sidebarView)) {
+        win.contentView.addChildView(this.sidebarView);
+      }
+      return;
+    }
 
     this.sidebarView = new WebContentsView({
       webPreferences: {

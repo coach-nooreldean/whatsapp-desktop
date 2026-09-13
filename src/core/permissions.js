@@ -23,9 +23,10 @@ function isWhatsApp(url) {
 }
 
 function chromeUserAgent(processVersions) {
-  const chromeVer = (processVersions && processVersions.chrome)
-    ? processVersions.chrome.split('.')[0]
-    : '132';
+  const versions = processVersions || (typeof process !== 'undefined' ? process.versions : null);
+  const chromeVer = (versions && versions.chrome)
+    ? versions.chrome.split('.')[0]
+    : '134';
   return `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ` +
          `Chrome/${chromeVer}.0.0.0 Safari/537.36`;
 }

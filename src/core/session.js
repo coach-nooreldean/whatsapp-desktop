@@ -70,7 +70,11 @@ function applySpellcheckToSession(ses, config) {
       ses.setSpellCheckerEnabled(enabled);
     }
     if (enabled && langs.length) {
-      ses.setSpellCheckerLanguages(langs);
+      try {
+        ses.setSpellCheckerLanguages(langs);
+      } catch (e) {
+        ses.setSpellCheckerLanguages(['en-US']);
+      }
     } else {
       ses.setSpellCheckerLanguages([]);
     }

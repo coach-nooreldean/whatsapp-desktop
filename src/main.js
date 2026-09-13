@@ -76,8 +76,14 @@ const windowStateMgr = new WindowStateManager({ config, onWayland });
 let appRunner = null;
 let quitting = false;
 
-const getMainWindow = () => (appRunner ? appRunner.getMainWindow() : null);
-const getTray = () => (appRunner ? appRunner.getTray() : null);
+const getMainWindow = () =>
+  (windowStateMgr && windowStateMgr.win && !windowStateMgr.win.isDestroyed()
+    ? windowStateMgr.win
+    : (appRunner ? appRunner.getMainWindow() : null));
+const getTray = () =>
+  (windowStateMgr && windowStateMgr.tray
+    ? windowStateMgr.tray
+    : (appRunner ? appRunner.getTray() : null));
 const getViewHandlers = () => (appRunner ? appRunner.getViewHandlers() : null);
 
 const dialogMgr = new DialogManager({

@@ -24,13 +24,41 @@ class ViewManager {
 
     this.accountViews = new Map(); // id -> item
     this.activeAccountId = this.accountsMgr.getActiveId() || 'default';
+    this.win = null;
 
     this.sidebar = new SidebarController({
       config,
       accountsMgr,
       privacyMgr,
-      getMainWindow,
+      getMainWindow: () => this.getMainWindowInstance(),
     });
+  }
+
+  setWindow(win) {
+    this.win = win;
+    if (this.sidebar && typeof this.sidebar.setWindow === 'function') {
+      this.sidebar.setWindow(win);
+    }
+    if (win && !win.isDestroyed() && win.contentView) {
+      if (this.sidebar && this.sidebar.view && !win.contentView.children.includes(this.sidebar.view)) {
+        win.contentView.addChildView(this.sidebar.view);
+      }
+      for (const [, item] of this.accountViews) {
+        if (item.view && !win.contentView.children.includes(item.view)) {
+          win.contentView.addChildView(item.view);
+        }
+      }
+      this.updateLayout();
+    }
+  }
+
+  getMainWindowInstance() {
+    if (this.win && !this.win.isDestroyed()) return this.win;
+    if (typeof this.getMainWindow === 'function') {
+      const win = this.getMainWindow();
+      if (win && !win.isDestroyed()) return win;
+    }
+    return null;
   }
 
   get sidebarView() {
@@ -69,12 +97,15 @@ class ViewManager {
     return 'default';
   }
 
-  initSidebar() {
-    this.sidebar.init();
+  initSidebar(winPassed) {
+    if (winPassed && !winPassed.isDestroyed()) {
+      this.win = winPassed;
+    }
+    this.sidebar.init(winPassed || this.getMainWindowInstance());
   }
 
   updateLayout() {
-    const win = this.getMainWindow();
+    const win = this.getMainWindowInstance();
     if (!win || win.isDestroyed()) return;
     const bounds = win.getContentBounds();
 
@@ -120,7 +151,7 @@ class ViewManager {
     this.notifySidebarState();
 
     const item = this.accountViews.get(id);
-    const win = this.getMainWindow();
+    const win = this.getMainWindowInstance();
     if (item && !item.view.webContents.isDestroyed()) {
       item.view.webContents.setBackgroundThrottling(false);
       item.view.webContents.focus();
@@ -156,9 +187,11 @@ class ViewManager {
 
     this.accountViews.set(account.id, item);
 
-    const win = this.getMainWindow();
+    const win = this.getMainWindowInstance();
     if (win && !win.isDestroyed() && win.contentView) {
-      win.contentView.addChildView(item.view);
+      if (!win.contentView.children.includes(item.view)) {
+        win.contentView.addChildView(item.view);
+      }
       this.updateLayout();
     }
 
@@ -178,7 +211,7 @@ class ViewManager {
     const acc = this.accountsMgr.getAccount(id);
     if (!acc) return false;
 
-    const win = this.getMainWindow();
+    const win = this.getMainWindowInstance();
     if (options.confirm) {
       const parentWin = options.window || win;
       const { response } = await dialog.showMessageBox(parentWin, {

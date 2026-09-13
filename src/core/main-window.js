@@ -45,9 +45,16 @@ function wireWindowEvents(win, options) {
     }
   });
 
-  for (const event of ['show', 'hide', 'focus', 'blur', 'restore']) {
+    for (const event of ['show', 'hide', 'focus', 'blur', 'restore']) {
     win.on(event, () => actions.pushFocus());
   }
+
+  win.on('closed', () => {
+    windowStateMgr.setWindow(null);
+    if (viewMgr && typeof viewMgr.setWindow === 'function') {
+      viewMgr.setWindow(null);
+    }
+  });
 
   windowStateMgr.traceWindowState();
 
@@ -95,8 +102,11 @@ function createMainWindow(options) {
 
   Menu.setApplicationMenu(null);
   windowStateMgr.setWindow(win);
+  if (viewMgr && typeof viewMgr.setWindow === 'function') {
+    viewMgr.setWindow(win);
+  }
 
-  viewMgr.initSidebar();
+  viewMgr.initSidebar(win);
 
   const viewHandlers = getViewHandlers();
   const accounts = accountsMgr.getAccounts();

@@ -186,6 +186,15 @@ try {
         viewMgr.accountsMgr.getActiveId());
   check('viewManager getActiveAccountView is null when empty', viewMgr.getActiveAccountView(), null);
   check('viewManager getAccountIdByWebContents handles null', viewMgr.getAccountIdByWebContents(null), 'default');
+  const mockWin = {
+    isDestroyed: () => false,
+    contentView: { children: [], addChildView(v) { this.children.push(v); } },
+    getContentBounds: () => ({ width: 1000, height: 700 }),
+    setTitle: () => {},
+  };
+  viewMgr.setWindow(mockWin);
+  check('viewManager setWindow sets internal win', viewMgr.win === mockWin, true);
+  check('sidebar setWindow receives win', viewMgr.sidebar.win === mockWin, true);
 
   // 7. deep-links.js
   check('isWhatsApp accepts web.whatsapp.com', deepLinks.isWhatsApp('https://web.whatsapp.com/'), true);

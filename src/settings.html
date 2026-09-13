@@ -155,6 +155,19 @@
           </div>
         </div>
       </div>
+    <!-- Accounts Section -->
+    <div class="section">
+      <div class="section-title">Accounts / تعدد الحسابات</div>
+      <div class="card">
+        <div id="settingsAccountsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div class="row" style="margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <div class="row-info">
+            <div class="row-title">Add WhatsApp Account</div>
+            <div class="row-desc">Add another isolated WhatsApp Web account to the sidebar</div>
+          </div>
+          <button class="stepper-btn" id="settingsAddAccountBtn" style="padding: 6px 14px; font-size: 13px; width: auto; height: 32px; border-radius: 6px; cursor: pointer;">+ Add</button>
+        </div>
+      </div>
     </div>
 
     <div class="footer-note">
@@ -279,7 +292,79 @@
       });
     }
 
+    async function loadAccounts() {
+      if (!window.api || !window.api.getAccounts) return;
+      try {
+        const accounts = await window.api.getAccounts();
+        const listEl = document.getElementById('settingsAccountsList');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        accounts.forEach(acc => {
+          const item = document.createElement('div');
+          item.style.display = 'flex';
+          item.style.alignItems = 'center';
+          item.style.justifyContent = 'space-between';
+          item.style.padding = '6px 0';
+
+          const left = document.createElement('div');
+          left.style.display = 'flex';
+          left.style.alignItems = 'center';
+          left.style.gap = '10px';
+
+          const dot = document.createElement('div');
+          dot.style.width = '14px';
+          dot.style.height = '14px';
+          dot.style.borderRadius = '50%';
+          dot.style.backgroundColor = acc.color || '#25D366';
+
+          const name = document.createElement('span');
+          name.textContent = acc.name + (acc.isDefault ? ' (Primary)' : '');
+          name.style.fontWeight = '500';
+          name.style.fontSize = '14px';
+
+          left.appendChild(dot);
+          left.appendChild(name);
+          item.appendChild(left);
+
+          if (!acc.isDefault) {
+            const delBtn = document.createElement('button');
+            delBtn.textContent = 'Remove';
+            delBtn.style.padding = '4px 10px';
+            delBtn.style.background = 'transparent';
+            delBtn.style.border = '1px solid var(--border-color)';
+            delBtn.style.color = '#ea4335';
+            delBtn.style.borderRadius = '6px';
+            delBtn.style.fontSize = '12px';
+            delBtn.style.cursor = 'pointer';
+            delBtn.addEventListener('click', async () => {
+              if (confirm(`Are you sure you want to remove ${acc.name}?`)) {
+                await window.api.removeAccount(acc.id);
+                loadAccounts();
+              }
+            });
+            item.appendChild(delBtn);
+          }
+
+          listEl.appendChild(item);
+        });
+      } catch (e) {
+        console.error('Failed to load accounts in settings:', e);
+      }
+    }
+
+    const settingsAddAccountBtn = document.getElementById('settingsAddAccountBtn');
+    if (settingsAddAccountBtn) {
+      settingsAddAccountBtn.addEventListener('click', async () => {
+        const name = prompt('Enter account name (e.g. Work):');
+        if (name && name.trim()) {
+          await window.api.addAccount({ name: name.trim() });
+          loadAccounts();
+        }
+      });
+    }
+
     loadSettings();
+    loadAccounts();
   </script>
 </body>
 </html>

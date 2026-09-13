@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('api', {
   /* Only the Fonts window asks for this, and only when the client has said a
      restart would finish what it started -- see changeSetting in main.js. */
   restart: () => ipcRenderer.send('settings:restart'),
+  getAccounts: () => ipcRenderer.invoke('accounts:get'),
+  addAccount: data => ipcRenderer.invoke('accounts:add', data),
+  removeAccount: id => ipcRenderer.invoke('accounts:remove', id),
   onSettingsChanged: callback => {
     ipcRenderer.on('settings:changed', (_, data) => callback(data));
   },

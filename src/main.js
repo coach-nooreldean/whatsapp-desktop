@@ -9,12 +9,13 @@
  */
 'use strict';
 
-const { app, BrowserWindow, Menu, clipboard, session, shell, nativeTheme, ipcMain, screen: electronScreen, desktopCapturer } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, clipboard, session, shell, nativeTheme, ipcMain, screen: electronScreen, desktopCapturer } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
 const { Config } = require('./config.js');
+const { AccountsManager, DEFAULT_PALETTE } = require('./accounts.js');
 const desktop = require('./desktop.js');
 const style = require('./style.js');
 const { TrayIcon } = require('./tray.js');
@@ -61,6 +62,10 @@ const ARRIVAL_SETTLE_MS = 4000;
 
 const hidden = process.argv.includes('--hidden');
 const config = new Config();
+const accountsMgr = new AccountsManager();
+const accountViews = new Map(); // id -> { view, account, cssKeys, loadedAt }
+let sidebarView = null;
+let activeAccountId = accountsMgr.getActiveId();
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   const pkg = require('../package.json');
@@ -312,15 +317,91 @@ const clampToScreen = (width, height) => {
    one it is on its way to: on screen. */
 let remapping = false;
 
+const getActiveAccountView = () => {
+  const item = accountViews.get(activeAccountId);
+  return item ? item.view : null;
+};
+
+const getActiveWebContents = () => {
+  const view = getActiveAccountView();
+  return view && !view.webContents.isDestroyed() ? view.webContents : null;
+};
+
+const getAccountIdByWebContents = wc => {
+  if (!wc) return 'default';
+  for (const [id, item] of accountViews) {
+    if (item.view && !item.view.webContents.isDestroyed() && item.view.webContents.id === wc.id) {
+      return id;
+    }
+  }
+  return 'default';
+};
+
+const notifySidebarState = () => {
+  if (sidebarView && !sidebarView.webContents.isDestroyed()) {
+    sidebarView.webContents.send('sidebar:state-changed', {
+      accounts: accountsMgr.getAccounts(),
+      activeId: activeAccountId,
+      theme: config.get('view.theme') || 'system',
+    });
+  }
+};
+
+const updateLayout = () => {
+  if (!win || win.isDestroyed()) return;
+  const bounds = win.getContentBounds();
+  const accounts = accountsMgr.getAccounts();
+  const showSidebar = accounts.length > 1;
+  const sidebarWidth = showSidebar ? 56 : 0;
+
+  if (sidebarView && !sidebarView.webContents.isDestroyed()) {
+    sidebarView.setBounds({ x: 0, y: 0, width: sidebarWidth, height: bounds.height });
+    sidebarView.setVisible(showSidebar);
+  }
+
+  for (const [id, item] of accountViews) {
+    if (item.view && !item.view.webContents.isDestroyed()) {
+      if (id === activeAccountId) {
+        item.view.setBounds({
+          x: sidebarWidth,
+          y: 0,
+          width: Math.max(0, bounds.width - sidebarWidth),
+          height: bounds.height,
+        });
+        item.view.setVisible(true);
+      } else {
+        item.view.setVisible(false);
+      }
+    }
+  }
+};
+
+const switchToAccount = id => {
+  if (!accountsMgr.getAccount(id)) return;
+  activeAccountId = id;
+  accountsMgr.setActiveId(id);
+  updateLayout();
+  pushFocus();
+  notifySidebarState();
+  const item = accountViews.get(id);
+  if (item && !item.view.webContents.isDestroyed()) {
+    item.view.webContents.focus();
+    const title = item.view.webContents.getTitle();
+    if (win && !win.isDestroyed()) win.setTitle(title && title.trim() ? title : TITLE);
+  }
+};
+
 const pushFocus = () => {
   if (!win || win.isDestroyed()) return;
   const onScreen = remapping || (win.isVisible() && !win.isMinimized());
   const active = onScreen && win.isFocused();
-  win.webContents.send('wa:focus', active);
-  /* Whether the compositor is drawing this window at all, which is a different
-     question from whether it has the focus and the one the page cannot answer
-     for itself. See the visibility section of src/page/inject.js. */
-  win.webContents.send('wa:on-screen', onScreen);
+  for (const [id, item] of accountViews) {
+    if (item.view && !item.view.webContents.isDestroyed()) {
+      const isThisActive = active && (id === activeAccountId);
+      item.view.webContents.send('wa:focus', isThisActive);
+      item.view.webContents.send('wa:on-screen', onScreen);
+    }
+  }
   /* The tray is deliberately not told anything here. What it needs is tracked
      from the window's own events instead -- see traceWindowState -- because
      asking the window is what got this wrong. */
@@ -735,8 +816,16 @@ const setAutostart = enable => {
 const changeSetting = (key, value) => {
   config.set(key, value);
   config.save();
-  if (key === 'view.zoom' && win && !win.isDestroyed()) {
-    win.webContents.setZoomFactor(Number(value) || 1.0);
+  if (key === 'view.zoom') {
+    const factor = Number(value) || 1.0;
+    for (const [, item] of accountViews) {
+      if (item.view && !item.view.webContents.isDestroyed()) {
+        item.view.webContents.setZoomFactor(factor);
+      }
+    }
+  }
+  if (key === 'view.theme') {
+    notifySidebarState();
   }
   if (key === 'view.font-size') applyStyle();
 
@@ -1026,29 +1115,41 @@ const styleSheet = () => {
   ].filter(Boolean).join('\n');
 };
 
-const drawStyle = async () => {
-  if (!win || win.isDestroyed()) return;
+const drawStyleForView = async (item) => {
+  if (!item || !item.view || item.view.webContents.isDestroyed()) return;
   const family = uiFont();
   const css = styleSheet();
 
-  /* Every sheet, not just the last one: a key that fails to come out is worth
-     saying so about, because what it leaves behind is a rule the user cannot
-     get rid of from Settings. */
-  const stale = cssKeys;
-  cssKeys = [];
+  const stale = item.cssKeys || [];
+  item.cssKeys = [];
   for (const key of stale) {
     try {
-      await win.webContents.removeInsertedCSS(key);
+      await item.view.webContents.removeInsertedCSS(key);
     } catch (e) { /* the page navigated; the old sheet went with it */ }
   }
 
-  /* USER origin, which is the one level whose !important beats the page's own.
-     An author-level sheet loses to WhatsApp's !important rules, and that is the
-     difference between the desktop font being used and being ignored. */
-  if (css) cssKeys.push(await win.webContents.insertCSS(css, { cssOrigin: 'user' }));
-  /* Kept reachable so the scroll probe can measure the page without it. */
-  require('./main-css.js').track(win, () => cssKeys[cssKeys.length - 1] || null,
-                                 key => { cssKeys = key ? [key] : []; });
+  if (css) {
+    try {
+      const key = await item.view.webContents.insertCSS(css, { cssOrigin: 'user' });
+      item.cssKeys.push(key);
+    } catch (e) {}
+  }
+};
+
+const drawStyle = async () => {
+  if (!win || win.isDestroyed()) return;
+  const family = uiFont();
+
+  for (const [, item] of accountViews) {
+    await drawStyleForView(item);
+  }
+
+  const activeItem = accountViews.get(activeAccountId);
+  if (activeItem) {
+    require('./main-css.js').track(win, () => activeItem.cssKeys[activeItem.cssKeys.length - 1] || null,
+                                   key => { activeItem.cssKeys = key ? [key] : []; });
+  }
+
   console.log('drawing in %s at %dpx%s', family, config.get('view.font-size'),
               pageFontStack ? '' : ' (waiting for the page to say what it asks for)');
 };
@@ -1062,9 +1163,136 @@ const applyStyle = () => {
   return styling;
 };
 
+const createAccountView = (account) => {
+  if (accountViews.has(account.id)) return accountViews.get(account.id);
+
+  const family = uiFont();
+  const ses = account.id === 'default'
+    ? session.defaultSession
+    : session.fromPartition(`persist:account_${account.id}`);
+
+  configureSession(ses);
+
+  const view = new WebContentsView({
+    webPreferences: {
+      session: ses,
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: false,
+      nodeIntegration: false,
+      sandbox: false,
+      spellcheck: !!config.get('behaviour.spellcheck'),
+      autoplayPolicy: 'no-user-gesture-required',
+      defaultFontFamily: { standard: family, sansSerif: family, serif: family },
+      defaultFontSize: config.get('view.font-size'),
+      backgroundThrottling: false,
+    },
+  });
+
+  const item = {
+    id: account.id,
+    account,
+    view,
+    cssKeys: [],
+    loadedAt: 0,
+    unreadChats: 0,
+    unreadMessages: null,
+    title: '',
+    storeLive: false,
+    activeChatId: '',
+    unreadChatNames: new Set(),
+  };
+
+  accountViews.set(account.id, item);
+
+  view.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown' && (input.control || input.meta) && input.key === ',') {
+      event.preventDefault();
+      openSettings();
+      return;
+    }
+    onKey(event, input);
+  });
+
+  view.webContents.on('did-finish-load', async () => {
+    item.loadedAt = Date.now();
+    if (account.id === activeAccountId) {
+      loadedAt = item.loadedAt;
+      if (pendingChat) {
+        view.webContents.send('wa:open-link', { phone: pendingChat.phone, wantsText: !!pendingChat.text });
+        pendingChat = null;
+      }
+      if (pendingInvite) {
+        view.webContents.send('wa:open-invite', { code: pendingInvite });
+        pendingInvite = '';
+      }
+    }
+    await drawStyleForView(item);
+    view.webContents.setZoomFactor(Number(config.get('view.zoom')) || 1);
+    view.webContents.send('wa:config', {
+      notifications: !!config.get('notifications.enabled'),
+      downloadStickers: config.get('media.download-stickers') !== false,
+      hideControlsWhenPaused: config.get('media.hide-controls-when-paused') !== false,
+      muteSendTone: !config.get('notifications.outgoing-sound'),
+      mutePageTone: !config.get('notifications.whatsapp-sound'),
+    });
+
+    if (config.get('notifications.sound')) {
+      const tone = sound.tone();
+      if (tone) view.webContents.send('wa:tone', tone);
+    }
+    pushFocus();
+  });
+
+  view.webContents.on('did-fail-load', (event, code, description, url, isMainFrame) => {
+    if (!isMainFrame || code === -3) return;
+    console.warn('account [%s] load failed (%d %s); trying again in 5s', account.name, code, description);
+    setTimeout(() => {
+      if (view && !view.webContents.isDestroyed()) view.webContents.loadURL(WHATSAPP_URL);
+    }, 5000);
+  });
+
+  view.webContents.on('render-process-gone', (event, details) => {
+    console.warn('account [%s] page went away (%s); reloading', account.name, details.reason);
+    if (details.reason !== 'clean-exit' && view && !view.webContents.isDestroyed()) {
+      view.webContents.reload();
+    }
+  });
+
+  view.webContents.on('page-title-updated', (event, title) => {
+    event.preventDefault();
+    onAccountTitle(account.id, title);
+  });
+
+  view.webContents.setWindowOpenHandler(({ url, features }) => {
+    if (!isOwnPage(url)) {
+      openExternally(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow', overrideBrowserWindowOptions: popupOptions(features) };
+  });
+
+  view.webContents.on('did-create-window', adoptPopup);
+  view.webContents.on('context-menu', (event, params) => showContextMenu(view.webContents, params));
+
+  view.webContents.on('will-navigate', (event, url) => {
+    const link = isOwnPage(url) ? null : links.from(url);
+    if (link) { event.preventDefault(); openLink(link, 'a link in the page'); return; }
+    if (isWhatsApp(url)) return;
+    event.preventDefault();
+    openExternally(url);
+  });
+
+  if (win && !win.isDestroyed() && win.contentView) {
+    win.contentView.addChildView(view);
+    updateLayout();
+  }
+
+  view.webContents.loadURL(WHATSAPP_URL);
+  return item;
+};
+
 const createWindow = () => {
   const { width, height } = clampToScreen(config.get('window.width'), config.get('window.height'));
-  const family = uiFont();
 
   win = new BrowserWindow({
     width,
@@ -1076,41 +1304,40 @@ const createWindow = () => {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0b141a' : '#ffffff',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      /* Off so the preload can hand the page script the same world WhatsApp's
-         own code runs in, at document-start. Node stays out of the page:
-         nodeIntegration is off and the preload puts nothing on window. */
-      contextIsolation: false,
-      nodeIntegration: false,
-      sandbox: false,
-      spellcheck: !!config.get('behaviour.spellcheck'),
-      /* The tone this client plays for its own banners goes through the page,
-         and Chromium blocks audio from a page the user has not interacted with
-         yet -- which a window sitting in the tray never has. */
-      autoplayPolicy: 'no-user-gesture-required',
-      /* Chromium picks its default families from fontconfig, which answers with
-         the system default rather than the font chosen for the desktop. The user
-         stylesheet is what actually draws the page, but these decide what
-         anything the sheet does not reach falls back to. */
-      defaultFontFamily: { standard: family, sansSerif: family, serif: family },
-      defaultFontSize: config.get('view.font-size'),
-      /* A window in the tray is a hidden window, and Chromium freezes the timers
-         of those. The chat-list watcher and WhatsApp's own keepalive both live on
-         timers, so this stays on. */
-      backgroundThrottling: false,
-    },
+  });
+
+  // Backward compatibility getter so win.webContents always targets the active view
+  Object.defineProperty(win, 'webContents', {
+    get: () => getActiveWebContents(),
+    configurable: true,
   });
 
   Menu.setApplicationMenu(null);
-  win.loadURL(WHATSAPP_URL);
 
-  win.webContents.on('before-input-event', (event, input) => {
-    if (input.type === 'keyDown' && (input.control || input.meta) && input.key === ',') {
-      event.preventDefault();
-      openSettings();
-    }
+  // Initialize sidebar WebContentsView
+  sidebarView = new WebContentsView({
+    webPreferences: {
+      preload: path.join(__dirname, 'sidebar-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      backgroundThrottling: false,
+    },
   });
+  win.contentView.addChildView(sidebarView);
+  sidebarView.webContents.loadFile(path.join(__dirname, 'sidebar.html'));
+
+  // Initialize accounts
+  const accounts = accountsMgr.getAccounts();
+  for (const acc of accounts) {
+    createAccountView(acc);
+  }
+
+  switchToAccount(activeAccountId || 'default');
+  updateLayout();
+
+  win.on('resize', updateLayout);
+  win.on('maximize', updateLayout);
+  win.on('unmaximize', updateLayout);
 
   /* ------------------------------------------------------ closing and hiding */
 
@@ -1119,12 +1346,10 @@ const createWindow = () => {
       const bounds = win.getBounds();
       config.set('window.width', bounds.width);
       config.set('window.height', bounds.height);
-      config.set('view.zoom', win.webContents.getZoomFactor());
+      const activeWc = getActiveWebContents();
+      if (activeWc) config.set('view.zoom', activeWc.getZoomFactor());
       config.save();
     }
-    /* Closing the window is not quitting: the client stays connected in the tray
-       and messages keep arriving. Ctrl+Q, and the tray's own Quit, are the two
-       ways out. */
     if (!quitting && config.get('behaviour.close-to-tray')) {
       event.preventDefault();
       hideWindow();
@@ -1145,100 +1370,11 @@ const createWindow = () => {
   traceWindowState();
 
   win.once('ready-to-show', () => {
+    updateLayout();
     if (!hidden) showWindow('the client started');
     pushFocus();
+    notifySidebarState();
   });
-
-  /* ------------------------------------------------------------- the page */
-
-  win.webContents.on('did-finish-load', async () => {
-    loadedAt = Date.now();
-    if (pendingChat) {
-      win.webContents.send('wa:open-link', { phone: pendingChat.phone, wantsText: !!pendingChat.text });
-      pendingChat = null;
-    }
-    if (pendingInvite) {
-      win.webContents.send('wa:open-invite', { code: pendingInvite });
-      pendingInvite = '';
-    }
-    await applyStyle();
-    win.webContents.setZoomFactor(Number(config.get('view.zoom')) || 1);
-    win.webContents.send('wa:config', {
-      notifications: !!config.get('notifications.enabled'),
-      downloadStickers: config.get('media.download-stickers') !== false,
-      hideControlsWhenPaused: config.get('media.hide-controls-when-paused') !== false,
-      muteSendTone: !config.get('notifications.outgoing-sound'),
-      /* One event, one sound, and the same one either way round: the client
-         plays the desktop's tone for a message arriving whether the window is in
-         front or in the tray, so the page's own tone is silenced. */
-      mutePageTone: !config.get('notifications.whatsapp-sound'),
-    });
-
-    /* The tone is handed over once and kept in the page, decoded, so raising it
-       later costs nothing. */
-    if (config.get('notifications.sound')) {
-      const tone = sound.tone();
-      if (tone) win.webContents.send('wa:tone', tone);
-    }
-    pushFocus();
-  });
-
-  win.webContents.on('did-fail-load', (event, code, description, url, isMainFrame) => {
-    if (!isMainFrame || code === -3) return;                  // -3 is an aborted load
-    console.warn('load failed (%d %s); trying again in 5s', code, description);
-    setTimeout(() => win && !win.isDestroyed() && win.loadURL(WHATSAPP_URL), 5000);
-  });
-
-  win.webContents.on('render-process-gone', (event, details) => {
-    console.warn('the page went away (%s); reloading', details.reason);
-    if (details.reason !== 'clean-exit') win.reload();
-  });
-
-  win.webContents.on('page-title-updated', (event, title) => {
-    event.preventDefault();
-    onTitle(title);
-  });
-
-  /* Links open in the desktop's browser. Anything that is not WhatsApp itself is
-     not this client's to show: it has no address bar to tell the user where they
-     have ended up.
-   *
-   * The client's own pages are the exception, and refusing them was a bug with a
-   * dialog attached: "Move to new window" in a call is a window.open, and a page
-   * handed null back from one reads that as the browser blocking pop-ups and
-   * says exactly that. So WhatsApp gets the window it asked for. */
-  win.webContents.setWindowOpenHandler(({ url, features }) => {
-    if (!isOwnPage(url)) {
-      openExternally(url);
-      return { action: 'deny' };
-    }
-    return { action: 'allow', overrideBrowserWindowOptions: popupOptions(features) };
-  });
-
-  win.webContents.on('did-create-window', adoptPopup);
-
-  win.webContents.on('context-menu', (event, params) => showContextMenu(win.webContents, params));
-
-  win.webContents.on('will-navigate', (event, url) => {
-    /* A link this file knows how to act on is acted on, even when isWhatsApp
-       would have waved it through: chat.whatsapp.com ends in whatsapp.com and is
-       still the invite page rather than the client, and letting the window
-       navigate to it would put a page with a "Download" button and no address
-       bar where the chat list was, with no way back.
-     *
-     * The client's own pages are asked about first and never answered for. Not
-     * because one would arrive here -- loadURL does not raise will-navigate --
-     * but because `/accept?code=` is a link this file recognises AND the URL
-     * openGroupInvite loads, and a route from one to the other is a loop waiting
-     * for the day some navigation does come through. */
-    const link = isOwnPage(url) ? null : links.from(url);
-    if (link) { event.preventDefault(); openLink(link, 'a link in the page'); return; }
-    if (isWhatsApp(url)) return;
-    event.preventDefault();
-    openExternally(url);
-  });
-
-  win.webContents.on('before-input-event', onKey);
 };
 
 const isWhatsApp = url => {
@@ -1521,23 +1657,67 @@ const onKey = (event, input) => {
 
   if (ctrl && key === 'q') { event.preventDefault(); quit(); return; }
   if (ctrl && key === 'w') { event.preventDefault(); win.close(); return; }
-  if (ctrl && key === 'r') { event.preventDefault(); win.reload(); return; }
+  if (ctrl && key === 'r') {
+    event.preventDefault();
+    const activeWc = getActiveWebContents();
+    if (activeWc) activeWc.reload();
+    return;
+  }
   if (ctrl && input.shift && key === 'i') {
     event.preventDefault();
-    win.webContents.toggleDevTools();
+    const activeWc = getActiveWebContents();
+    if (activeWc) activeWc.toggleDevTools();
     return;
   }
 
-  const zoom = win.webContents.getZoomFactor();
+  // Ctrl+1 through Ctrl+9 switches accounts
+  if (ctrl && !input.alt && !input.shift && /^[1-9]$/.test(input.key)) {
+    const idx = parseInt(input.key, 10) - 1;
+    const accounts = accountsMgr.getAccounts();
+    if (idx >= 0 && idx < accounts.length) {
+      event.preventDefault();
+      switchToAccount(accounts[idx].id);
+      return;
+    }
+  }
+
+  // Ctrl+Alt+A opens Add Account modal
+  if (ctrl && input.alt && key === 'a') {
+    event.preventDefault();
+    if (sidebarView && !sidebarView.webContents.isDestroyed()) {
+      sidebarView.webContents.send('sidebar:open-add-modal');
+    }
+    return;
+  }
+
+  const activeWc = getActiveWebContents();
+  const zoom = activeWc ? activeWc.getZoomFactor() : 1;
   if (ctrl && (key === '+' || key === '=')) {
     event.preventDefault();
-    win.webContents.setZoomFactor(Math.min(3, zoom + 0.1));
+    const newZoom = Math.min(3, zoom + 0.1);
+    config.set('view.zoom', newZoom);
+    for (const [, item] of accountViews) {
+      if (item.view && !item.view.webContents.isDestroyed()) {
+        item.view.webContents.setZoomFactor(newZoom);
+      }
+    }
   } else if (ctrl && key === '-') {
     event.preventDefault();
-    win.webContents.setZoomFactor(Math.max(0.3, zoom - 0.1));
+    const newZoom = Math.max(0.3, zoom - 0.1);
+    config.set('view.zoom', newZoom);
+    for (const [, item] of accountViews) {
+      if (item.view && !item.view.webContents.isDestroyed()) {
+        item.view.webContents.setZoomFactor(newZoom);
+      }
+    }
   } else if (ctrl && key === '0') {
     event.preventDefault();
-    win.webContents.setZoomFactor(1);
+    config.set('view.zoom', 1);
+    for (const [, item] of accountViews) {
+      if (item.view && !item.view.webContents.isDestroyed()) {
+        item.view.webContents.setZoomFactor(1);
+      }
+    }
   }
 };
 
@@ -1755,12 +1935,29 @@ const bannersAreOurs = () => {
    count reached the app first and every banner read "You have a new message".
    The quarter second lets WhatsApp finish moving the chat to the top of the list
    before the row is read. */
-const describeThenNotify = () => setTimeout(async () => {
+const updateAggregateUnread = () => {
+  let totalWaiting = 0;
+  for (const [, it] of accountViews) {
+    const w = it.unreadMessages === null ? (it.unreadChats || 0) : (it.unreadMessages || 0);
+    totalWaiting += w;
+  }
+  if (tray) tray.setAttention(totalWaiting > 0);
+  setBadge(totalWaiting);
+  if (win && !win.isDestroyed()) {
+    const activeItem = accountViews.get(activeAccountId);
+    const title = activeItem && activeItem.title ? activeItem.title : TITLE;
+    win.setTitle(title && title.trim() ? title : TITLE);
+  }
+};
+
+const describeThenNotify = (targetAccountId = activeAccountId) => setTimeout(async () => {
   if (!win || win.isDestroyed()) return;
+  const item = accountViews.get(targetAccountId);
+  if (!item || !item.view || item.view.webContents.isDestroyed()) return;
 
   let answer = '';
   try {
-    answer = await win.webContents.executeJavaScript(
+    answer = await item.view.webContents.executeJavaScript(
       'window.__waDescribeUnread ? window.__waDescribeUnread() : ""', true);
   } catch (e) {
     console.warn('could not ask the page what arrived: %s', e.message);
@@ -1768,25 +1965,10 @@ const describeThenNotify = () => setTimeout(async () => {
   }
 
   if (answer === 'open') {
-    /* Nothing at all: no banner, and no tone either.
-     *
-     * The message landed in the conversation the user is looking at, with the
-     * bubble drawn under their eyes as it arrived -- there is nothing left for
-     * an announcement to tell them. WhatsApp Web used to play its own tone here
-     * and it is silenced along with the rest of the page's; a tone was put in
-     * its place for a moment, and it was noise. This is the one case that is
-     * quiet on purpose, and the only one.
-     *
-     * "In front" is doing real work in that sentence: this path is reached only
-     * while the window is visible AND focused (bannersAreOurs). A message to the
-     * chat on screen of a window the user is NOT looking at goes down the page's
-     * own path instead, and is announced like any other. */
     console.log('a message in the chat on screen: nothing raised, and nothing played');
     return;
   }
   if (!answer) {
-    /* The list moved but the page cannot say what moved it -- a row mid-render, a
-       reaction, a chat read somewhere else. Not something to put a banner over. */
     console.log('notification skipped: nothing the page could name');
     return;
   }
@@ -1794,95 +1976,61 @@ const describeThenNotify = () => setTimeout(async () => {
   const [chat, sender, message, avatar, token] = answer.split(SEP);
   if (!chat || !message) return;
 
+  const acc = accountsMgr.getAccount(targetAccountId);
+  const prefix = (accountsMgr.getAccounts().length > 1 && acc) ? `[${acc.name}] ` : '';
+
   const raised = banners.show({
-    /* This message and no other. Not the chat -- keyed on the chat, the second
-       message of a burst would replace the first instead of stacking under it. */
-    identity: [chat, sender, message].join(SEP),
-    key: chat,
-    title: bidi.paragraph(chat),
+    identity: (targetAccountId !== 'default' ? targetAccountId + SEP : '') + [chat, sender, message].join(SEP),
+    key: (targetAccountId !== 'default' ? targetAccountId + SEP : '') + chat,
+    title: bidi.paragraph(prefix + chat),
     body: bidi.line(sender, message),
     redacted: kindOf(message),
     icon: avatar,
-    /* A banner is a message, and clicking one is asking to read it. The banners
-       WhatsApp Web raises have always done this -- the click goes back to the
-       page and WhatsApp's own handler opens the conversation -- while these,
-       raised on this side, only brought the window forward and left the user
-       wherever they already were. The page has no handler to hand this one back
-       to, so it is asked for the chat by name. */
     onClick: () => {
+      if (targetAccountId !== activeAccountId) switchToAccount(targetAccountId);
       showWindow('a banner was clicked');
-      /* The row this banner was made from travels back with the click, because a
-         chat cannot always be found again by its name: two of them can share one,
-         and this account has such a pair. The name and the message go too, for
-         when WhatsApp has recycled the row in the meantime. */
-      if (win && !win.isDestroyed())
-        win.webContents.send('wa:open-chat-request', { token, name: chat, preview: message });
+      if (item && !item.view.webContents.isDestroyed())
+        item.view.webContents.send('wa:open-chat-request', { token, name: chat, preview: message });
     },
   });
-  /* One event, one sound. A banner refused as a message already announced is not
-     an event, and playing a tone for it would be the duplicate arriving in the
-     one form the deduplication cannot take back. */
   if (raised) playTone();
 }, 250);
 
-/* WhatsApp Web puts "(3) WhatsApp" in the document title while chats are unread
-   and drops the prefix once they are read. That is the only unread signal the
-   page hands over without scraping its DOM, and it is what marks the tray. */
-const onTitle = title => {
-  /* The parenthesised number counts unread CHATS, not messages: two
-     conversations holding five messages between them read "(2) WhatsApp". It is
-     read for one thing only -- has anything new arrived -- because that is all
-     it is reliable for. No number is drawn anywhere. */
+const onAccountTitle = (accId, title) => {
+  const item = accountViews.get(accId);
+  if (!item) return;
+  item.title = title || '';
+
   let chats = 0;
   const m = /^\((\d+)\)/.exec(title || '');
   if (m) chats = parseInt(m[1], 10) || 1;
 
-  /* A backstop for the one case the chat list watcher cannot see: a chat far
-     enough down the list that its row was never rendered has no previous preview
-     to have changed, so nothing is reported when a message moves it to the top.
-     The count rises all the same. */
-  /* And nothing at all while the store is answering. This is the last of the
-     three ways into the old path and it was the one left open: the two obvious
-     ones -- the watcher's nudge and the shim over WhatsApp's own notifications
-     -- were shut, and a message still arrived twice, with two tones behind it.
-     A count going up is a guess that something arrived, and a guess raises a
-     banner whose identity is the chat, the sender and the text; the store's
-     carries a message id. Nothing deduplicates across those two, so the guess
-     was announcing a second time every message the store had already named. */
-  if (!storeLive &&
-      chats > unreadChats &&
+  if (!item.storeLive &&
+      chats > (item.unreadChats || 0) &&
       Date.now() - lastArrivalAt > TITLE_FALLBACK_MS &&
       bannersAreOurs()) {
-    describeThenNotify();
+    describeThenNotify(accId);
   }
-  unreadChats = chats;
+  item.unreadChats = chats;
+  if (accId === activeAccountId) unreadChats = chats;
 
-  /* The badge and the tray, and neither of them while the store is answering.
-     The title counts unread CHATS and leaves muted ones out of even that --
-     measured "(3)" against six unread chats holding eleven messages -- while
-     the store counts the messages themselves. Two places writing one number
-     from answers that disagree is how an icon ends up marked unread with
-     nothing behind it. */
-  if (storeLive) {
-    if (win && !win.isDestroyed()) win.setTitle(title && title.trim() ? title : TITLE);
+  if (item.storeLive) {
+    updateAggregateUnread();
     return;
   }
 
-  /* The title dropping its prefix is the one unambiguous statement WhatsApp
-     makes about unread: everything has been read. It is taken as such, and the
-     page's count is reset with it rather than left to expire on its own. */
-  if (chats === 0) unreadMessages = 0;
+  if (chats === 0) {
+    item.unreadMessages = 0;
+    if (accId === activeAccountId) unreadMessages = 0;
+  }
 
-  const waiting = unreadMessages === null ? chats : unreadMessages;
-  if (tray) tray.setAttention(waiting > 0);
-  /* The number on the launcher icon, from the title only until the page has
-     counted the pills for us. The title's number is chats, not messages, so it
-     is the wrong number for a badge -- three conversations holding eleven
-     messages read "3" where the phone reads "11" -- but it is the right number
-     when nothing has been counted yet. */
-  setBadge(waiting);
-  if (win && !win.isDestroyed()) win.setTitle(title && title.trim() ? title : TITLE);
+  const waiting = item.unreadMessages === null ? chats : item.unreadMessages;
+  accountsMgr.setUnreadCount(accId, waiting);
+  notifySidebarState();
+  updateAggregateUnread();
 };
+
+const onTitle = title => onAccountTitle(activeAccountId, title);
 
 /* Drawn by the launcher, over the application's icon. On Linux this goes out on
    the Unity LauncherEntry interface, which GNOME reads through Dash to Dock and
@@ -2078,96 +2226,53 @@ const wireIpc = () => {
   /* The chat list watcher nudges us for every message it sees land, which is what
      makes a banner per message possible at all. The document title cannot do that
      job: its number counts unread CHATS, so the second and third message from one
-     person leave "(1) WhatsApp" exactly as it was and nothing fires. */
-  ipcMain.on('wa:arrival', () => {
-    /* Refused outright while the store is answering. This nudge is the chat-list
-       watcher's, and the watcher stops sending it then -- this is the second
-       half of that gate, so a report already in flight when the store came up
-       does not turn into a duplicate banner. */
-    if (storeLive) return;
+     person leave "(1) WhatsApp" exactly as it was and nothing fires. *  ipcMain.on('wa:arrival', event => {
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    if (item && item.storeLive) return;
     if (!bannersAreOurs()) return;
     lastArrivalAt = Date.now();
-    describeThenNotify();
+    describeThenNotify(accId);
   });
 
   /* A notification WhatsApp Web itself decided to raise, intercepted in the page
      and handed over with the sender's picture already fetched. The click goes
      back to the page, whose own handler opens the conversation. */
   ipcMain.on('wa:page-notification', (event, note) => {
-    if (storeLive) return;
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    if (item && item.storeLive) return;
     if (!note || !config.get('notifications.enabled')) return;
-    /* The page says whether this chat is a group, because WhatsApp's own body
-       reads "Sender: message" for one and the bare message for the other, and
-       nothing in the text tells them apart. */
+
     const { sender, message: said, mark } = readBody(note.body, note.group);
-    /* And the mark for what kind of thing it is, which this path never used to
-       put on. The chat-list watcher labelled every preview it read; the
-       notifications WhatsApp Web raises itself came through with WhatsApp's own
-       bare "Sticker" and no glyph -- and those are every notification raised
-       while the window is not in front, which is most of them. Same table both
-       sides now, so the two also agree on what a message is called and the
-       deduplication between them keeps working. */
     const message = mediaFromWords(said) || said;
 
+    const acc = accountsMgr.getAccount(accId);
+    const prefix = (accountsMgr.getAccounts().length > 1 && acc) ? `[${acc.name}] ` : '';
+
     const banner = banners.show({
-      identity: [note.chat || note.title, sender, message].join(SEP),
-      /* Keyed on the chat the page found in its list rather than on the title
-         WhatsApp wrote, so this path and the watcher's agree on what a chat is
-         called. The withdrawal side speaks chat-list names and nothing else: a
-         key that does not appear there is a notification nothing can take
-         down. */
-      key: note.chat || note.title,
-      title: bidi.paragraph(pushName(note.title)),
+      identity: (accId !== 'default' ? accId + SEP : '') + [note.chat || note.title, sender, message].join(SEP),
+      key: (accId !== 'default' ? accId + SEP : '') + (note.chat || note.title),
+      title: bidi.paragraph(prefix + pushName(note.title)),
       body: bidi.line(sender, message, mark),
       redacted: bidi.words(mark, kindOf(message)),
       icon: note.avatar,
       onClick: () => {
+        if (accId !== activeAccountId) switchToAccount(accId);
         showWindow('a banner was clicked');
-        if (win && !win.isDestroyed()) win.webContents.send('wa:notification-clicked', note.id);
+        if (item && !item.view.webContents.isDestroyed())
+          item.view.webContents.send('wa:notification-clicked', note.id);
       },
     });
     if (banner) {
       pageBanners.set(note.id, banner);
-      /* Most of these are never mentioned again: a banner the user clicked, or
-         one withdrawn when its chat was read, is finished with and WhatsApp
-         never names its id. Trimmed oldest-first rather than tracked, which a
-         client left running for days needs and nothing else would do. */
       while (pageBanners.size > 256) pageBanners.delete(pageBanners.keys().next().value);
-    }
-    /* And the tone, because the page's own has been silenced for this.
-     *
-     * `silent` on the notification is deliberately not honoured. In the web API
-     * it means "raise this without the browser's own sound", and a page that
-     * plays its own tone through an <audio> element -- which is exactly what
-     * WhatsApp Web does -- has every reason to set it. Honouring it here, with
-     * that tone silenced, would leave the one case this whole change is about
-     * making no sound at all. It is logged instead, so the truth about which
-     * notifications carry it is in the log rather than in a guess. */
-    if (banner) {
-      /* What kind of thing it was, and never a word of what it said. This is the
-         one line that answers "the sticker arrived without its mark" from a log
-         instead of from a screenshot. */
-      console.log('raised: %s', mark + (mediaFromWords(said) || 'a message of words'));
+      console.log('raised [%s]: %s', acc ? acc.name : accId, mark + (mediaFromWords(said) || 'a message of words'));
       if (note.silent) console.log('the page asked for a silent notification; the tone is played anyway');
       playTone();
     }
   });
 
-  /*
-   * WhatsApp Web closing a notification of its own.
-   *
-   * It does this for two very different reasons and says which for neither. One
-   * is the message having been read -- on the phone, most often -- and that is
-   * a banner this client should take down with it. The other is housekeeping:
-   * it closes notifications it has finished with, and it does so in batches, so
-   * a sticker arriving used to sweep every earlier message out of the
-   * notification centre along with it. That was the report, and taking the
-   * disposal out altogether was the fix -- which left the phone case unhandled.
-   *
-   * The chat itself settles it. A close for a chat that still has something
-   * waiting is housekeeping and is ignored; a close for a chat with nothing
-   * unread left is the message having been read, and the banner goes.
-   */
   ipcMain.on('wa:page-notification-close', (event, note) => {
     if (!note) return;
     const banner = pageBanners.get(note.id);
@@ -2187,152 +2292,99 @@ const wireIpc = () => {
 
   ipcMain.on('wa:store-ready', (event, state) => {
     const ready = !!(state && state.ready);
-    if (ready === storeLive) return;
-    storeLive = ready;
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    if (item) item.storeLive = ready;
+    if (accId === activeAccountId) storeLive = ready;
     if (!ready) {
-      console.log('WhatsApp\'s store is not answering; the chat list watcher is in charge');
+      console.log('WhatsApp\'s store for [%s] is not answering; the chat list watcher is in charge', accId);
       return;
     }
-    /* What the chat list had been reporting is not carried over: it speaks in
-       display names and the store speaks in chat ids, and a mixed set is a set
-       nothing can withdraw from. The store's own report of what is unread
-       follows immediately behind this. */
+    if (item) item.unreadChatNames = new Set();
     unreadChatNames = new Set();
     for (const timer of withdrawing.values()) clearTimeout(timer);
     withdrawing.clear();
   });
 
-  /* One message, as WhatsApp described it: a message id, a chat id, the sender
-     when there is one, and a mark for what kind of thing arrived. Nothing here
-     is parsed out of a sentence -- the "Sender: message" split that a
-     notification body used to need, and the heuristic that decided a direct
-     message reading "the link is https://..." came from somebody called "the
-     link is https", are both gone with the body they were reading. */
   ipcMain.on('wa:store-message', (event, note) => {
     if (!note || !note.chat || !note.title) return;
     if (!storeBannersAreOurs()) return;
+
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    const acc = accountsMgr.getAccount(accId);
+    const prefix = (accountsMgr.getAccounts().length > 1 && acc) ? `[${acc.name}] ` : '';
 
     chatTitles.set(note.chat, note.title);
     if (chatTitles.size > 512) chatTitles.delete(chatTitles.keys().next().value);
 
     const mark = note.mark ? note.mark.trim() : '';
-    /* The mark and the words, in that order, and either of them may be missing:
-       a photo with no caption is its mark alone, and a message of words has none
-       at all. */
     const said = [mark, note.text].filter(Boolean).join(' ');
-    /* And a message aimed at the user says so in front of the sender, in
-       WhatsApp's own words: "Replied to you: Mega: تيست". It opens the line
-       rather than standing above it, and the line is all there is -- a banner
-       broken into two paragraphs loses everything under the first one in the
-       notification centre, which is the note on BREAKS in bidi.js. */
     const aimed = note.aimed ? String(note.aimed).trim() : '';
-
-    /* Two ways to put a name in front of a line, and the difference is not
-       cosmetic. A message is "Mega: نتقابل بكرة" -- the colon says Mega SAID
-       this. A reaction is "Mega reacted 😂 to: ..." -- Mega said none of it,
-       this client is describing what they did, and a colon after the name would
-       claim otherwise. Either way the mark opens the line, the name is isolated
-       and pinned to the left margin, and the message keeps its own direction
-       inside an isolate of its own. */
     const body = note.join === 'space' ? bidi.did(note.sender, said, aimed)
                                        : bidi.line(note.sender, said, aimed);
     const banner = banners.show({
-      /* The message and no other. This used to be the chat, the sender and the
-         text hashed together, which is as close to a message's identity as
-         reading a chat list can get -- and it cost a genuinely repeated message
-         inside two minutes, because two identical sentences hash the same. A
-         message id is the thing itself. */
-      identity: note.msg,
-      msgId: note.msg,
-      /* Keyed on the chat ID. Every withdrawal below speaks the same identity,
-         so a banner can always be taken down -- which a key made of a display
-         name could not promise, with two chats sharing one. */
-      key: note.chat,
-      title: bidi.paragraph(note.title),
+      identity: (accId !== 'default' ? accId + SEP : '') + note.msg,
+      msgId: (accId !== 'default' ? accId + SEP : '') + note.msg,
+      key: (accId !== 'default' ? accId + SEP : '') + note.chat,
+      title: bidi.paragraph(prefix + note.title),
       body,
-      /* What the banner may say with previews turned off. The page names it when
-         the mark alone would not -- a reaction has no mark, and "New message" is
-         the wrong thing to call one. */
       redacted: bidi.words(aimed, note.redacted || mark || 'New message'),
       icon: note.avatar,
       onClick: () => {
+        if (accId !== activeAccountId) switchToAccount(accId);
         showWindow('a banner was clicked');
-        /* The message travels with the click, and a story travels with a flag
-           saying so: a story mention landed in `status@broadcast` along with
-           everybody else's updates, and opening that chat is not what the user
-           asked for by clicking it. The page opens the story itself. */
-        if (win && !win.isDestroyed())
-          win.webContents.send('wa:store-open', { chat: note.chat, name: note.title,
+        if (item && !item.view.webContents.isDestroyed())
+          item.view.webContents.send('wa:store-open', { chat: note.chat, name: note.title,
                                                   preview: note.text, msg: note.msg,
                                                   story: !!note.story });
       },
     });
     if (!banner) return;
-    console.log('raised: %s in %s%s', note.why === 'reaction' ? 'a reaction'
-                : mark || 'a message of words', note.title,
-                note.mention ? ' (addressed to you)' : '');
+    console.log('raised [%s]: %s in %s%s', acc ? acc.name : accId,
+                note.why === 'reaction' ? 'a reaction' : mark || 'a message of words',
+                note.title, note.mention ? ' (addressed to you)' : '');
     playTone();
   });
 
-  /* A message landing in the conversation the user is looking at, on screen and
-     in front of them. Nothing: no banner, and no tone either. The bubble was
-     drawn under their eyes as it arrived and there is nothing left for an
-     announcement to tell them -- which is the owner's own rule for this case,
-     stated twice. A tone was put here for a moment, on the reasoning that
-     WhatsApp's own had been muted and the case would otherwise go silent, and
-     silent is exactly what it is meant to be. */
-  /* A telephone ringing, which is the one banner here that announces something
-     still happening rather than something that has happened.
-   *
-   * It is an ordinary banner and deliberately so. Keeping one on the screen for
-   * the whole of a call needs critical urgency, and GNOME's rule for a critical
-   * banner is that it stands until it is acted on -- the pointer moving over it
-   * and away, which is how every other banner is waved off, does nothing to it
-   * at all. The owner asked for the pointer to work. So this behaves like any
-   * other: it shows, it is waved away or slides off by itself, and it waits in
-   * the notification centre -- where it can still be clicked to take the call --
-   * until the ringing stops and it is withdrawn.
-   *
-   * No tone. WhatsApp Web rings for an incoming call through its own audio and
-   * this client has never muted that -- playing one here would be a second
-   * sound over the first. */
   ipcMain.on('wa:store-ringing', (event, note) => {
     if (!note || !note.chat || !note.title || !note.call) return;
     if (!storeBannersAreOurs()) return;
 
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    const acc = accountsMgr.getAccount(accId);
+    const prefix = (accountsMgr.getAccounts().length > 1 && acc) ? `[${acc.name}] ` : '';
+
     chatTitles.set(note.chat, note.title);
 
     const banner = banners.show({
-      /* The call, not the message. The banner for a call that was missed is
-         keyed on the message it was written into, so the two live side by side
-         for the moment it takes one to replace the other. */
-      identity: 'ring' + SEP + note.call,
-      msgId: 'ring' + SEP + note.call,
-      key: note.chat,
-      /* Not a message, so nothing about the chat being read takes it down. */
+      identity: 'ring' + SEP + (accId !== 'default' ? accId + SEP : '') + note.call,
+      msgId: 'ring' + SEP + (accId !== 'default' ? accId + SEP : '') + note.call,
+      key: (accId !== 'default' ? accId + SEP : '') + note.chat,
       ongoing: true,
-      title: bidi.paragraph(note.title),
+      title: bidi.paragraph(prefix + note.title),
       body: bidi.line(note.sender, note.mark),
       redacted: note.mark,
       icon: note.avatar,
       onClick: () => {
+        if (accId !== activeAccountId) switchToAccount(accId);
         showWindow('a ringing banner was clicked');
-        if (win && !win.isDestroyed())
-          win.webContents.send('wa:store-open', { chat: note.chat, name: note.title });
+        if (item && !item.view.webContents.isDestroyed())
+          item.view.webContents.send('wa:store-open', { chat: note.chat, name: note.title });
       },
     });
     if (!banner) return;
-    ringingBanners.add('ring' + SEP + note.call);
-    console.log('ringing: %s in %s', note.mark, note.title);
+    ringingBanners.add('ring' + SEP + (accId !== 'default' ? accId + SEP : '') + note.call);
+    console.log('ringing [%s]: %s in %s', acc ? acc.name : accId, note.mark, note.title);
   });
 
-  /* And the ringing stopping, whatever stopped it. What follows -- a banner for
-     the call that was missed, and then everything held while it rang -- is not
-     this handler's business. */
   ipcMain.on('wa:store-ring-over', (event, note) => {
-    if (!storeLive || !note || !note.call || !banners) return;
-    ringingBanners.delete('ring' + SEP + note.call);
-    if (banners.closeMessage('ring' + SEP + note.call))
+    if (!note || !note.call || !banners) return;
+    const accId = getAccountIdByWebContents(event.sender);
+    const ringKey = 'ring' + SEP + (accId !== 'default' ? accId + SEP : '') + note.call;
+    ringingBanners.delete(ringKey);
+    if (banners.closeMessage(ringKey))
       console.log('the telephone has stopped ringing in %s',
                   chatTitles.get(note.chat) || note.chat);
   });
@@ -2342,34 +2394,24 @@ const wireIpc = () => {
     console.log('a message in the chat on screen: nothing raised, and nothing played');
   });
 
-  /* Read. Here, on the phone, or on another desktop -- WhatsApp does not say
-     which and it does not matter. */
   ipcMain.on('wa:store-read', (event, state) => {
-    if (!storeLive || !state) return;
+    if (!state) return;
     storeRead(state.chat, Number(state.unread) || 0);
   });
 
   ipcMain.on('wa:store-active', (event, state) => {
-    if (!storeLive || !state) return;
+    if (!state) return;
     storeActive(state.chat || '');
   });
 
   ipcMain.on('wa:store-unread', (event, map) => {
-    if (!storeLive) return;
     storeUnread(map);
   });
 
-  /* Deleted for everyone. The banner for that one message comes down and nothing
-     is raised in its place -- the phone withdraws it silently, and a notification
-     announcing that a message the user never read has been deleted tells them
-     about a message twice over and about its contents not at all. */
   ipcMain.on('wa:store-gone', (event, state) => {
-    if (!storeLive || !state || !state.msg || !banners) return;
+    if (!state || !state.msg || !banners) return;
     const closed = banners.closeMessage(state.msg);
     if (!closed) return;
-    /* The two things that take one notification down rather than a chat's worth
-       of them, told apart in the log because they are told apart nowhere else:
-       a message deleted for everyone, and a reaction taken back or read. */
     console.log('withdrew %d notification(s) in %s: %s', closed,
                 chatTitles.get(state.chat) || state.chat || 'a chat',
                 String(state.msg).startsWith('reaction') ? 'the reaction is gone'
@@ -2377,49 +2419,172 @@ const wireIpc = () => {
   });
 
   ipcMain.on('wa:store-count', (event, count) => {
-    if (!storeLive || !count || typeof count.messages !== 'number') return;
-    unreadMessages = count.messages;
-    setBadge(count.messages);
-    if (tray) tray.setAttention(count.messages > 0);
+    if (!count || typeof count.messages !== 'number') return;
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    if (item) item.unreadMessages = count.messages;
+    if (accId === activeAccountId) unreadMessages = count.messages;
+    accountsMgr.setUnreadCount(accId, count.messages);
+    notifySidebarState();
+    updateAggregateUnread();
   });
 
-  /* The conversation on screen, reported by the page when it changes and again
-     whenever the window comes back. This is the signal that takes a banner down
-     the moment the user opens the chat -- the unread report below cannot: it is
-     refused for the first few seconds of a banner's life, and it is sent only
-     when the answer changes, so those few seconds used to be for ever. */
   ipcMain.on('wa:open-chat', (event, name) => {
     if (storeLive) return;
     openChat = typeof name === 'string' ? name : '';
     withdrawOpen();
   });
 
-  /* Which chats still have something unread, reported by the page whenever the
-     answer changes. A notification is an unread message made visible, so when
-     the message stops being unread the notification has no business staying on
-     screen -- and it stops being unread whether it was read here or on the
-     phone, because WhatsApp Web clears the pill either way. */
   ipcMain.on('wa:unread-chats', (event, names) => {
     if (storeLive) return;
     if (!Array.isArray(names) || !banners) return;
     unreadChatNames = new Set(names);
     const held = banners.keys();
-    /* Names, never messages. Which chats are unread and which still have a
-       banner up is the whole of the withdrawal question, and it is the one thing
-       a log of this path has to be able to answer. */
     if (held.length)
       console.log('unread: [%s]; banners still up for: [%s]', names.join(', '), held.join(', '));
     for (const key of new Set([...held, ...withdrawing.keys()])) withdrawRead(key);
   });
 
-  /* How many messages are waiting, counted off the unread pills rather than
-     inferred from the document title. This is the number the badge wants. */
   ipcMain.on('wa:unread-count', (event, count) => {
-    if (storeLive) return;
     if (!count || typeof count.messages !== 'number') return;
-    unreadMessages = count.messages;
-    setBadge(count.messages);
-    if (tray) tray.setAttention(count.messages > 0);
+    const accId = getAccountIdByWebContents(event.sender);
+    const item = accountViews.get(accId);
+    if (item && item.storeLive) return;
+    if (item) item.unreadMessages = count.messages;
+    if (accId === activeAccountId) unreadMessages = count.messages;
+    accountsMgr.setUnreadCount(accId, count.messages);
+    notifySidebarState();
+    updateAggregateUnread();
+  });
+
+  /* ---------------------------------------------------- Sidebar & Multi-Account IPC */
+
+  ipcMain.handle('sidebar:get-state', () => {
+    return {
+      accounts: accountsMgr.getAccounts(),
+      activeId: activeAccountId,
+      theme: config.get('view.theme') || 'system',
+    };
+  });
+
+  ipcMain.on('sidebar:switch-account', (event, id) => {
+    switchToAccount(id);
+  });
+
+  ipcMain.handle('sidebar:add-account', async (event, data) => {
+    const acc = accountsMgr.addAccount(data);
+    createAccountView(acc);
+    switchToAccount(acc.id);
+    notifySidebarState();
+    return acc;
+  });
+
+  ipcMain.handle('sidebar:update-account', async (event, id, updates) => {
+    const acc = accountsMgr.updateAccount(id, updates);
+    const item = accountViews.get(id);
+    if (item) item.account = acc;
+    notifySidebarState();
+    return acc;
+  });
+
+  ipcMain.handle('sidebar:remove-account', async (event, id) => {
+    if (id === 'default') return false;
+    if (activeAccountId === id) switchToAccount('default');
+    const item = accountViews.get(id);
+    if (item) {
+      if (win && !win.isDestroyed() && win.contentView) {
+        win.contentView.removeChildView(item.view);
+      }
+      try { item.view.webContents.close(); } catch (e) {}
+      accountViews.delete(id);
+    }
+    try {
+      const ses = session.fromPartition('persist:account_' + id);
+      await ses.clearStorageData();
+    } catch (e) {}
+    accountsMgr.removeAccount(id);
+    updateLayout();
+    notifySidebarState();
+    updateAggregateUnread();
+    return true;
+  });
+
+  ipcMain.on('sidebar:context-menu', (event, id) => {
+    const acc = accountsMgr.getAccount(id);
+    if (!acc) return;
+    const menu = new Menu();
+    menu.append(new MenuItem({ label: acc.name, enabled: false }));
+    menu.append(new MenuItem({ type: 'separator' }));
+    menu.append(new MenuItem({
+      label: 'Switch to this account / الانتقال لهذا الحساب',
+      click: () => switchToAccount(id),
+    }));
+    if (id !== 'default') {
+      menu.append(new MenuItem({
+        label: 'Remove Account / حذف الحساب',
+        click: async () => {
+          const { response } = await dialog.showMessageBox(win, {
+            type: 'question',
+            buttons: ['Cancel', 'Remove / حذف'],
+            defaultId: 1,
+            cancelId: 0,
+            title: 'Remove Account / حذف الحساب',
+            message: `Are you sure you want to remove account "${acc.name}"? This will log out this session.`,
+          });
+          if (response === 1) {
+            if (activeAccountId === id) switchToAccount('default');
+            const item = accountViews.get(id);
+            if (item) {
+              if (win && !win.isDestroyed() && win.contentView) {
+                win.contentView.removeChildView(item.view);
+              }
+              try { item.view.webContents.close(); } catch (e) {}
+              accountViews.delete(id);
+            }
+            try {
+              const ses = session.fromPartition('persist:account_' + id);
+              await ses.clearStorageData();
+            } catch (e) {}
+            accountsMgr.removeAccount(id);
+            updateLayout();
+            notifySidebarState();
+            updateAggregateUnread();
+          }
+        },
+      }));
+    }
+    menu.popup({ window: win });
+  });
+
+  // Settings accounts IPC
+  ipcMain.handle('accounts:get', () => accountsMgr.getAccounts());
+  ipcMain.handle('accounts:add', async (event, data) => {
+    const acc = accountsMgr.addAccount(data);
+    createAccountView(acc);
+    switchToAccount(acc.id);
+    notifySidebarState();
+    return acc;
+  });
+  ipcMain.handle('accounts:remove', async (event, id) => {
+    if (id === 'default') return false;
+    if (activeAccountId === id) switchToAccount('default');
+    const item = accountViews.get(id);
+    if (item) {
+      if (win && !win.isDestroyed() && win.contentView) {
+        win.contentView.removeChildView(item.view);
+      }
+      try { item.view.webContents.close(); } catch (e) {}
+      accountViews.delete(id);
+    }
+    try {
+      const ses = session.fromPartition('persist:account_' + id);
+      await ses.clearStorageData();
+    } catch (e) {}
+    accountsMgr.removeAccount(id);
+    updateLayout();
+    notifySidebarState();
+    updateAggregateUnread();
+    return true;
   });
 };
 
@@ -2457,7 +2622,7 @@ const rememberDownloadDir = dir => {
  * With the switch off it goes back to what it did: ~/Downloads, no dialog, and
  * a number on the end of a name that is already taken rather than a file
  * quietly written over. */
-const wireDownloads = ses => {
+function wireDownloads(ses) {
   ses.on('will-download', (event, item) => {
     const name = item.getFilename();
 
@@ -2497,7 +2662,7 @@ const ALLOWED_PERMISSIONS = new Set([
   'speaker-selection', 'mediaKeySystem', 'idle-detection', 'window-management',
 ]);
 
-const wirePermissions = ses => {
+function wirePermissions(ses) {
   /* The origin is checked as well as the permission, and the check is written to
      survive not being told one. Chromium hands over an empty requestingUrl for
      the media request a call starts with, and an earlier version of this read
@@ -2518,7 +2683,7 @@ const wirePermissions = ses => {
      blanket yes to anything that finds its way into it. */
   ses.setDevicePermissionHandler(details =>
     isWhatsApp((details && details.origin) || ''));
-};
+}
 
 /* Screen sharing during calls. WhatsApp Web calls getDisplayMedia() when the user
    presses the share-screen button in a call, and Electron does not forward that to
@@ -2528,7 +2693,7 @@ const wirePermissions = ses => {
    system dialog on top of that would be a speed bump. PipeWire is the path it takes
    on Wayland, and the WebRTCPipeWireCapturer flag in the switches above is what
    enables that. */
-const wireScreenSharing = ses => {
+function wireScreenSharing(ses) {
   /* Electron will not forward getDisplayMedia anywhere without a handler, so the
      share-screen button in a call silently does nothing until one is set. What
      the handler must never do is fail to answer: a callback that is not called
@@ -2589,17 +2754,28 @@ const wireScreenSharing = ses => {
       callback({ video: null });
     }
   }, { useSystemPicker: true });
-};
+}
 
 /* WhatsApp Web keys the client it thinks it is talking to off the user agent, and
    the Electron one is not a browser it knows. A plain Chrome string is: the same
    page, the same features, and the device registers as Chrome on Linux rather
    than as something WhatsApp has never heard of. */
-const chromeUserAgent = () => {
+function chromeUserAgent() {
   const chrome = process.versions.chrome.split('.')[0];
   return `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) ` +
          `Chrome/${chrome}.0.0.0 Safari/537.36`;
-};
+}
+
+function configureSession(ses) {
+  const ua = chromeUserAgent();
+  ses.setUserAgent(ua);
+  wireDownloads(ses);
+  wirePermissions(ses);
+  wireScreenSharing(ses);
+  if (config.get('behaviour.spellcheck')) {
+    try { ses.setSpellCheckerLanguages(['en-US']); } catch (e) {}
+  }
+}
 
 app.on('second-instance', (event, argv) => {
   /* Where a whatsapp: link lands. xdg-open starts a second copy with the URL on

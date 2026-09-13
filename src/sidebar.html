@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Accounts</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body>
+
+  <div class="accounts-container" id="accountsList"></div>
+
+  <button class="add-btn" id="addAccountBtn" title="إضافة حساب جديد (Ctrl+Alt+A)">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  </button>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <!-- Add Account Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>إضافة حساب واتساب جديد</span>
+      </div>
+      <input type="text" class="modal-input" id="accountNameInput" placeholder="اسم الحساب (مثال: العمل)" maxlength="20">
+      <div class="palette-grid" id="paletteGrid"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelAddBtn">إلغاء</button>
+        <button class="btn-primary" id="saveAddBtn">إضافة</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const accountsList = document.getElementById('accountsList');
+    const addAccountBtn = document.getElementById('addAccountBtn');
+    const tooltip = document.getElementById('tooltip');
+    const addModal = document.getElementById('addModal');
+    const accountNameInput = document.getElementById('accountNameInput');
+    const paletteGrid = document.getElementById('paletteGrid');
+    const cancelAddBtn = document.getElementById('cancelAddBtn');
+    const saveAddBtn = document.getElementById('saveAddBtn');
+
+    const PALETTE = [
+      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
+      '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
+    ];
+    let selectedColor = PALETTE[1];
+    let currentState = { accounts: [], activeId: 'default', theme: 'dark' };
+
+    // Setup color picker dots
+    PALETTE.forEach((col, idx) => {
+      const dot = document.createElement('div');
+      dot.className = 'color-dot' + (idx === 1 ? ' selected' : '');
+      dot.style.backgroundColor = col;
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+        selectedColor = col;
+      });
+      paletteGrid.appendChild(dot);
+    });
+
+    function getInitials(name) {
+      if (!name) return 'W';
+      const clean = name.trim();
+      const parts = clean.split(/\s+/);
+      if (parts.length > 1) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return clean.slice(0, 2).toUpperCase();
+    }
+
+    function render(state) {
+      if (!state) return;
+      currentState = state;
+      document.documentElement.setAttribute('data-theme', state.theme || 'dark');
+
+      accountsList.innerHTML = '';
+      const accounts = state.accounts || [];
+
+      accounts.forEach((acc, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'account-item-wrap' + (acc.id === state.activeId ? ' active' : '');
+
+        // Active pill
+        const pill = document.createElement('div');
+        pill.className = 'active-pill';
+        pill.style.backgroundColor = acc.color || '#25D366';
+        wrap.appendChild(pill);
+
+        // Button
+        const btn = document.createElement('button');
+        btn.className = 'account-btn';
+        btn.textContent = getInitials(acc.name);
+        btn.style.backgroundColor = acc.color ? `${acc.color}22` : '#202c33';
+        btn.style.color = acc.color || '#e9edef';
+        btn.style.borderColor = acc.id === state.activeId ? (acc.color || '#00a884') : 'transparent';
+
+        // Unread badge
+        const badge = document.createElement('div');
+        badge.className = 'unread-badge' + (acc.unread > 0 ? ' visible' : '');
+        badge.textContent = acc.unread > 99 ? '99+' : acc.unread;
+        btn.appendChild(badge);
+
+        // Click to switch
+        btn.addEventListener('click', () => {
+          if (window.api && acc.id !== currentState.activeId) {
+            window.api.switchAccount(acc.id);
+          }
+        });
+
+        // Right-click context menu
+        btn.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          if (window.api) window.api.showContextMenu(acc.id);
+        });
+
+        // Hover tooltip
+        btn.addEventListener('mouseenter', (e) => {
+          const rect = btn.getBoundingClientRect();
+          tooltip.textContent = `${acc.name} (Ctrl+${index + 1})`;
+          tooltip.style.top = `${rect.top + (rect.height / 2) - 14}px`;
+          tooltip.classList.add('show');
+        });
+
+        btn.addEventListener('mouseleave', () => {
+          tooltip.classList.remove('show');
+        });
+
+        wrap.appendChild(btn);
+        accountsList.appendChild(wrap);
+      });
+    }
+
+    function openAddModal() {
+      accountNameInput.value = '';
+      addModal.classList.add('open');
+      setTimeout(() => accountNameInput.focus(), 50);
+    }
+
+    function closeAddModal() {
+      addModal.classList.remove('open');
+    }
+
+    addAccountBtn.addEventListener('click', openAddModal);
+    cancelAddBtn.addEventListener('click', closeAddModal);
+
+    saveAddBtn.addEventListener('click', async () => {
+      const name = accountNameInput.value.trim();
+      if (!name) {
+        accountNameInput.focus();
+        return;
+      }
+      if (window.api) {
+        await window.api.addAccount({ name, color: selectedColor });
+        closeAddModal();
+      }
+    });
+
+    accountNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveAddBtn.click();
+      if (e.key === 'Escape') closeAddModal();
+    });
+
+    if (window.api) {
+      window.api.getInitialState().then(render).catch(console.error);
+      window.api.onStateChange(render);
+      window.api.onOpenAddModal(openAddModal);
+    }
+  </script>
+</body>
+</html>

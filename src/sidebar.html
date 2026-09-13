@@ -29,62 +29,28 @@
 
   <div class="tooltip" id="tooltip"></div>
 
-  <!-- Add Account Modal -->
-  <div class="modal-overlay" id="addModal">
-    <div class="modal-card">
-      <div class="modal-title">
-        <span>إضافة حساب واتساب جديد</span>
-      </div>
-      <input type="text" class="modal-input" id="accountNameInput" placeholder="اسم الحساب (مثال: العمل / Work)" maxlength="20">
-      <div class="palette-grid" id="paletteGrid"></div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="cancelAddBtn">إلغاء</button>
-        <button class="btn-primary" id="saveAddBtn">إضافة</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     const accountsList = document.getElementById('accountsList');
     const addAccountBtn = document.getElementById('addAccountBtn');
     const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
     const pullHandle = document.getElementById('pullHandle');
     const tooltip = document.getElementById('tooltip');
-    const addModal = document.getElementById('addModal');
-    const accountNameInput = document.getElementById('accountNameInput');
-    const paletteGrid = document.getElementById('paletteGrid');
-    const cancelAddBtn = document.getElementById('cancelAddBtn');
-    const saveAddBtn = document.getElementById('saveAddBtn');
 
-    const PALETTE = [
-      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
-      '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
-    ];
-    let selectedColor = PALETTE[1];
     let currentState = { accounts: [], activeId: 'default', theme: 'dark' };
     let isCollapsed = false;
-
-    // Setup color picker dots
-    PALETTE.forEach((col, idx) => {
-      const dot = document.createElement('div');
-      dot.className = 'color-dot' + (idx === 1 ? ' selected' : '');
-      dot.style.backgroundColor = col;
-      dot.addEventListener('click', () => {
-        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
-        dot.classList.add('selected');
-        selectedColor = col;
-      });
-      paletteGrid.appendChild(dot);
-    });
 
     function getInitials(name) {
       if (!name) return 'W';
       const clean = name.trim();
-      const parts = clean.split(/\s+/);
-      if (parts.length > 1) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
+      if (clean.length <= 2) return clean.toUpperCase();
+      const words = clean.split(/\s+/);
+      if (words.length > 1) {
+        const w1 = words[0].replace(/^(ال)/, '') || words[0];
+        const w2 = words[1].replace(/^(ال)/, '') || words[1];
+        return (w1[0] + w2[0]).toUpperCase();
       }
-      return clean.slice(0, 2).toUpperCase();
+      const single = clean.replace(/^(ال)/, '') || clean;
+      return single.slice(0, 2).toUpperCase();
     }
 
     function render(state) {
@@ -154,40 +120,12 @@
     }
 
     function openAddModal() {
-      if (window.api && window.api.notifyModalOpen) {
-        window.api.notifyModalOpen();
-      }
-      accountNameInput.value = '';
-      addModal.classList.add('open');
-      setTimeout(() => accountNameInput.focus(), 60);
-    }
-
-    function closeAddModal() {
-      addModal.classList.remove('open');
-      if (window.api && window.api.notifyModalClose) {
-        window.api.notifyModalClose();
+      if (window.api && window.api.openAddModal) {
+        window.api.openAddModal();
       }
     }
 
     addAccountBtn.addEventListener('click', openAddModal);
-    cancelAddBtn.addEventListener('click', closeAddModal);
-
-    saveAddBtn.addEventListener('click', async () => {
-      const name = accountNameInput.value.trim();
-      if (!name) {
-        accountNameInput.focus();
-        return;
-      }
-      if (window.api) {
-        await window.api.addAccount({ name, color: selectedColor });
-        closeAddModal();
-      }
-    });
-
-    accountNameInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') saveAddBtn.click();
-      if (e.key === 'Escape') closeAddModal();
-    });
 
     // Toggle collapse
     toggleSidebarBtn.addEventListener('click', () => {

@@ -308,15 +308,21 @@
       if (!window.api || !window.api.getAccounts) return;
       try {
         const accounts = await window.api.getAccounts();
+        const activeId = window.api.getActiveAccountId ? await window.api.getActiveAccountId() : 'default';
         const listEl = document.getElementById('settingsAccountsList');
         if (!listEl) return;
         listEl.innerHTML = '';
         accounts.forEach(acc => {
+          const isActive = acc.id === activeId;
           const item = document.createElement('div');
           item.style.display = 'flex';
           item.style.alignItems = 'center';
           item.style.justifyContent = 'space-between';
-          item.style.padding = '6px 0';
+          item.style.padding = '8px 12px';
+          item.style.borderRadius = '8px';
+          item.style.backgroundColor = isActive ? 'rgba(0, 168, 132, 0.08)' : 'rgba(0, 0, 0, 0.12)';
+          item.style.border = isActive ? '1px solid var(--accent)' : '1px solid var(--border-color)';
+          item.style.transition = 'all 0.2s ease';
 
           const left = document.createElement('div');
           left.style.display = 'flex';
@@ -324,19 +330,62 @@
           left.style.gap = '10px';
 
           const dot = document.createElement('div');
-          dot.style.width = '14px';
-          dot.style.height = '14px';
+          dot.style.width = '16px';
+          dot.style.height = '16px';
           dot.style.borderRadius = '50%';
           dot.style.backgroundColor = acc.color || '#25D366';
 
+          const nameWrap = document.createElement('div');
+          nameWrap.style.display = 'flex';
+          nameWrap.style.alignItems = 'center';
+          nameWrap.style.gap = '8px';
+
           const name = document.createElement('span');
           name.textContent = acc.name + (acc.isDefault ? ' (Primary)' : '');
-          name.style.fontWeight = '500';
+          name.style.fontWeight = '600';
           name.style.fontSize = '14px';
+          nameWrap.appendChild(name);
+
+          if (isActive) {
+            const activeBadge = document.createElement('span');
+            activeBadge.textContent = 'النشط حالياً / Active';
+            activeBadge.style.fontSize = '11px';
+            activeBadge.style.fontWeight = '600';
+            activeBadge.style.color = '#00a884';
+            activeBadge.style.background = 'rgba(0, 168, 132, 0.15)';
+            activeBadge.style.padding = '2px 8px';
+            activeBadge.style.borderRadius = '10px';
+            nameWrap.appendChild(activeBadge);
+          }
 
           left.appendChild(dot);
-          left.appendChild(name);
+          left.appendChild(nameWrap);
           item.appendChild(left);
+
+          const rightActions = document.createElement('div');
+          rightActions.style.display = 'flex';
+          rightActions.style.alignItems = 'center';
+          rightActions.style.gap = '8px';
+
+          if (!isActive) {
+            const switchBtn = document.createElement('button');
+            switchBtn.textContent = 'انتقال / Switch';
+            switchBtn.style.padding = '5px 12px';
+            switchBtn.style.background = 'var(--accent, #00a884)';
+            switchBtn.style.border = 'none';
+            switchBtn.style.color = '#ffffff';
+            switchBtn.style.borderRadius = '6px';
+            switchBtn.style.fontSize = '12px';
+            switchBtn.style.fontWeight = '600';
+            switchBtn.style.cursor = 'pointer';
+            switchBtn.addEventListener('click', async () => {
+              if (window.api && window.api.switchAccount) {
+                await window.api.switchAccount(acc.id);
+                window.api.close();
+              }
+            });
+            rightActions.appendChild(switchBtn);
+          }
 
           if (!acc.isDefault) {
             const delBtn = document.createElement('button');
@@ -369,9 +418,10 @@
               await window.api.removeAccount(acc.id);
               loadAccounts();
             });
-            item.appendChild(delBtn);
+            rightActions.appendChild(delBtn);
           }
 
+          item.appendChild(rightActions);
           listEl.appendChild(item);
         });
       } catch (e) {
@@ -387,10 +437,10 @@
     const settingsSaveAddBtn = document.getElementById('settingsSaveAddBtn');
 
     const SETTINGS_PALETTE = [
-      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
+      '#0088cc', '#25D366', '#8b5cf6', '#ec4899',
       '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
     ];
-    let selectedSettingsColor = SETTINGS_PALETTE[1];
+    let selectedSettingsColor = SETTINGS_PALETTE[0];
 
     if (settingsColorPicker) {
       settingsColorPicker.innerHTML = '';
@@ -402,7 +452,7 @@
         dot.style.backgroundColor = col;
         dot.style.cursor = 'pointer';
         dot.style.boxSizing = 'border-box';
-        dot.style.border = idx === 1 ? '2px solid var(--text-primary)' : '2px solid transparent';
+        dot.style.border = idx === 0 ? '2px solid var(--text-primary)' : '2px solid transparent';
         dot.style.transition = 'transform 0.15s ease';
         dot.addEventListener('click', () => {
           settingsColorPicker.childNodes.forEach(d => { d.style.border = '2px solid transparent'; });
@@ -437,9 +487,14 @@
         settingsSaveAddBtn.disabled = true;
         try {
           if (window.api && window.api.addAccount) {
-            await window.api.addAccount({ name, color: selectedSettingsColor });
+            const newAcc = await window.api.addAccount({ name, color: selectedSettingsColor });
             settingsAddForm.style.display = 'none';
-            await loadAccounts();
+            if (newAcc && newAcc.id && window.api.switchAccount) {
+              await window.api.switchAccount(newAcc.id);
+              window.api.close();
+            } else {
+              await loadAccounts();
+            }
           }
         } catch (e) {
           console.error('Failed to add account from settings:', e);

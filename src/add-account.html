@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إضافة حساب واتساب / Add WhatsApp Account</title>
+  <style>
+    :root {
+      --bg-color: #111b21;
+      --bg-card: #202c33;
+      --text-primary: #e9edef;
+      --text-secondary: #8696a0;
+      --accent: #00a884;
+      --border-color: #2a3942;
+      --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Arabic", sans-serif;
+    }
+    :root[data-theme="light"] {
+      --bg-color: #f0f2f5;
+      --bg-card: #ffffff;
+      --text-primary: #111b21;
+      --text-secondary: #667781;
+      --accent: #00a884;
+      --border-color: #d1d7db;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-color);
+    }
+    .titlebar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background-color: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      -webkit-app-region: drag;
+    }
+    .titlebar span {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.15s ease;
+    }
+    .close-btn:hover {
+      background-color: rgba(234, 67, 53, 0.15);
+      color: #ea4335;
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    input[type="text"] {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+    .palette-grid {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-start;
+      margin-top: 2px;
+    }
+    .color-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .color-dot:hover {
+      transform: scale(1.15);
+    }
+    .color-dot.selected {
+      border-color: var(--text-primary);
+      transform: scale(1.2);
+    }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 10px;
+    }
+    button.btn {
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+    .btn-cancel:hover {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+    }
+    .btn-submit {
+      background: var(--accent);
+      border: none;
+      color: #ffffff;
+    }
+    .btn-submit:hover {
+      filter: brightness(1.1);
+    }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <span>إضافة حساب واتساب / Add WhatsApp Account</span>
+    <button class="close-btn" id="closeBtn" title="إغلاق (Esc)">✕</button>
+  </div>
+
+  <div class="content">
+    <div class="form-group">
+      <label for="accountNameInput">اسم الحساب / Account Name</label>
+      <input type="text" id="accountNameInput" placeholder="مثال: العمل / Work أو شخصي" maxlength="24" autofocus>
+    </div>
+
+    <div class="form-group">
+      <label>لون الحساب / Account Color</label>
+      <div class="palette-grid" id="paletteGrid"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-cancel" id="cancelBtn">إلغاء / Cancel</button>
+      <button class="btn btn-submit" id="submitBtn">إضافة وانتقال / Add Account</button>
+    </div>
+  </div>
+
+  <script>
+    const PALETTE = [
+      '#0088cc', '#25D366', '#8b5cf6', '#ec4899',
+      '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
+    ];
+    let selectedColor = PALETTE[0];
+
+    const closeBtn = document.getElementById('closeBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const nameInput = document.getElementById('accountNameInput');
+    const paletteGrid = document.getElementById('paletteGrid');
+
+    // Populate color dots
+    PALETTE.forEach((col, idx) => {
+      const dot = document.createElement('div');
+      dot.className = 'color-dot' + (idx === 0 ? ' selected' : '');
+      dot.style.backgroundColor = col;
+      dot.addEventListener('click', () => {
+        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+        dot.classList.add('selected');
+        selectedColor = col;
+      });
+      paletteGrid.appendChild(dot);
+    });
+
+    const closeSelf = () => {
+      if (window.api && window.api.close) window.api.close();
+    };
+
+    closeBtn.addEventListener('click', closeSelf);
+    cancelBtn.addEventListener('click', closeSelf);
+
+    const submit = async () => {
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        return;
+      }
+      submitBtn.disabled = true;
+      try {
+        if (window.api && window.api.addAccount) {
+          await window.api.addAccount({ name, color: selectedColor });
+        }
+        closeSelf();
+      } catch (e) {
+        console.error('Failed to add account:', e);
+        submitBtn.disabled = false;
+      }
+    };
+
+    submitBtn.addEventListener('click', submit);
+
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submit();
+      if (e.key === 'Escape') closeSelf();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeSelf();
+    });
+
+    // Theme sync
+    if (window.api && window.api.getSettings) {
+      window.api.getSettings().then(settings => {
+        if (settings && settings['view.theme']) {
+          document.documentElement.setAttribute('data-theme', settings['view.theme']);
+        }
+      }).catch(console.error);
+    }
+  </script>
+</body>
+</html>

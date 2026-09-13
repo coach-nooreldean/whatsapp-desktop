@@ -9,8 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   updateAccount: (id, data) => ipcRenderer.invoke('sidebar:update-account', { id, ...data }),
   removeAccount: id => ipcRenderer.invoke('sidebar:remove-account', id),
   showContextMenu: id => ipcRenderer.send('sidebar:context-menu', id),
-  notifyModalOpen: () => ipcRenderer.send('sidebar:modal-open'),
-  notifyModalClose: () => ipcRenderer.send('sidebar:modal-close'),
+  openAddModal: () => ipcRenderer.send('sidebar:open-add-dialog'),
   setCollapsed: collapsed => ipcRenderer.send('sidebar:set-collapsed', collapsed),
   onStateChange: callback => {
     ipcRenderer.on('sidebar:state-changed', (event, state) => callback(state));

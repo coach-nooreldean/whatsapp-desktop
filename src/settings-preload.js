@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('api', {
      restart would finish what it started -- see changeSetting in main.js. */
   restart: () => ipcRenderer.send('settings:restart'),
   getAccounts: () => ipcRenderer.invoke('accounts:get'),
+  getActiveAccountId: () => ipcRenderer.invoke('accounts:get-active'),
+  switchAccount: id => ipcRenderer.invoke('accounts:switch', id),
   addAccount: data => ipcRenderer.invoke('accounts:add', data),
   removeAccount: id => ipcRenderer.invoke('accounts:remove', id),
   onSettingsChanged: callback => {

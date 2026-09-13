@@ -67,7 +67,6 @@ const accountViews = new Map(); // id -> { view, account, cssKeys, loadedAt }
 let sidebarView = null;
 let activeAccountId = accountsMgr.getActiveId();
 let sidebarCollapsed = config.get('view.sidebar-collapsed') === true;
-let sidebarModalOpen = false;
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   const pkg = require('../package.json');
@@ -354,14 +353,6 @@ const notifySidebarState = () => {
 const updateLayout = () => {
   if (!win || win.isDestroyed()) return;
   const bounds = win.getContentBounds();
-
-  if (sidebarModalOpen) {
-    if (sidebarView && !sidebarView.webContents.isDestroyed()) {
-      sidebarView.setBounds({ x: 0, y: 0, width: bounds.width, height: bounds.height });
-      sidebarView.setVisible(true);
-    }
-    return;
-  }
 
   const sidebarWidth = sidebarCollapsed ? 14 : 56;
 
@@ -930,6 +921,54 @@ const openSettings = () => {
   });
 
   return settingsWin;
+};
+
+let addAccountWin = null;
+const openAddAccountWindow = () => {
+  if (addAccountWin && !addAccountWin.isDestroyed()) {
+    addAccountWin.show();
+    addAccountWin.focus();
+    return addAccountWin;
+  }
+
+  const isDark = nativeTheme.shouldUseDarkColors;
+  const settingsFont = uiFont();
+  addAccountWin = new BrowserWindow({
+    width: 400,
+    height: 300,
+    parent: win && !win.isDestroyed() ? win : null,
+    modal: true,
+    center: true,
+    resizable: false,
+    frame: false,
+    title: 'إضافة حساب واتساب / Add WhatsApp Account',
+    icon: appIcon,
+    autoHideMenuBar: true,
+    backgroundColor: isDark ? '#111b21' : '#f0f2f5',
+    webPreferences: {
+      preload: path.join(__dirname, 'settings-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      defaultFontFamily: {
+        standard: settingsFont, sansSerif: settingsFont, serif: settingsFont,
+      },
+    },
+  });
+
+  Menu.setApplicationMenu(null);
+  addAccountWin.loadFile(path.join(__dirname, 'add-account.html'));
+
+  addAccountWin.once('ready-to-show', () => {
+    addAccountWin.show();
+    addAccountWin.focus();
+  });
+
+  addAccountWin.on('closed', () => {
+    addAccountWin = null;
+  });
+
+  return addAccountWin;
 };
 
 /*
@@ -1702,12 +1741,10 @@ const onKey = (event, input) => {
     }
   }
 
-  // Ctrl+Alt+A opens Add Account modal
+  // Ctrl+Alt+A opens Add Account dialog
   if (ctrl && input.alt && key === 'a') {
     event.preventDefault();
-    if (sidebarView && !sidebarView.webContents.isDestroyed()) {
-      sidebarView.webContents.send('sidebar:open-add-modal');
-    }
+    openAddAccountWindow();
     return;
   }
 
@@ -2595,18 +2632,21 @@ const wireIpc = () => {
     }
   });
 
-  ipcMain.on('sidebar:modal-open', () => {
-    sidebarModalOpen = true;
-    updateLayout();
-  });
-
-  ipcMain.on('sidebar:modal-close', () => {
-    sidebarModalOpen = false;
-    updateLayout();
+  ipcMain.on('sidebar:open-add-dialog', () => {
+    openAddAccountWindow();
   });
 
   // Settings accounts IPC
   ipcMain.handle('accounts:get', () => accountsMgr.getAccounts());
+  ipcMain.handle('accounts:get-active', () => activeAccountId);
+  ipcMain.handle('accounts:switch', async (event, id) => {
+    switchToAccount(id);
+    if (win && !win.isDestroyed()) {
+      win.show();
+      win.focus();
+    }
+    return true;
+  });
   ipcMain.handle('accounts:add', async (event, data) => {
     const acc = accountsMgr.addAccount(data);
     createAccountView(acc);

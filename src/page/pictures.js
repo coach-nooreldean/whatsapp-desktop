@@ -87,7 +87,9 @@ const setHref = (element, url) => {
     } else {
       element.setAttribute('src', url);
     }
-  } catch (e) {}
+  } catch (err) {
+    // DOM node might be disconnected or recycled by WhatsApp Web during burst renders
+  }
 };
 
 const start = ({ log, grab }) => {

@@ -111,7 +111,7 @@
 <span class="c">==&gt; rpm system detected, installing shinux-release</span>
 <span class="c">==&gt; done.</span>
 <span class="p">$</span> sudo dnf install --refresh whatsapp-desktop
-<span class="c">Installed:</span> <span class="g">whatsapp-desktop-<span data-version>1.6.1</span>-1.x86_64</span>
+<span class="c">Installed:</span> <span class="g">whatsapp-desktop-<span data-version>1.6.13</span>-1.x86_64</span>
 <span class="p">$</span> whatsapp-desktop<span class="cursor"></span></code></pre>
       </div>
       <ul class="hero-facts">
@@ -211,6 +211,15 @@
         WhatsApp's ever sees a message — it is linked from your phone exactly like a
         browser, and unlinked the same way.</p>
       </article>
+
+      <article class="card feat">
+        <div class="feat-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <h3>Multiple accounts side by side</h3>
+        <p>Switch between personal, work, and secondary accounts instantly using the
+        vertical sidebar or <kbd>Ctrl</kbd>+<kbd>1</kbd>&ndash;<kbd>9</kbd>. Each account runs in an
+        isolated partition so sessions never conflict, with separate unread badges
+        and notifications tagged by account name.</p>
+      </article>
     </div>
 
     <div class="showcase">
@@ -249,6 +258,9 @@
           <dt>Zoom Level</dt>
           <dd>Scales the whole interface, pictures and spacing and all — the same as
           <kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>-</kbd> / <kbd>0</kbd>.</dd>
+
+          <dt>Multi-Account Management</dt>
+          <dd>Add secondary isolated accounts, assign custom names and avatar colors, and switch or remove accounts.</dd>
 
         </dl>
         <p class="note">All of it lands in
@@ -418,9 +430,9 @@ EOF</code></pre>
 
     <div class="card panel" id="i-file" role="tabpanel" aria-labelledby="t-file" hidden>
       <p class="step">Install a file you already downloaded</p>
-<pre><code>sudo dnf install ./whatsapp-desktop-<span data-version>1.6.1</span>-1.x86_64.rpm
-sudo apt install ./whatsapp-desktop_<span data-version>1.6.1</span>_amd64.deb
-sudo pacman -U ./whatsapp-desktop-<span data-version>1.6.1</span>-1-x86_64.pkg.tar.zst</code></pre>
+<pre><code>sudo dnf install ./whatsapp-desktop-<span data-version>1.6.13</span>-1.x86_64.rpm
+sudo apt install ./whatsapp-desktop_<span data-version>1.6.13</span>_amd64.deb
+sudo pacman -U ./whatsapp-desktop-<span data-version>1.6.13</span>-1-x86_64.pkg.tar.zst</code></pre>
       <p class="note">The leading <code>./</code> matters: without it both
       <code>dnf</code> and <code>apt</code> look for a package by that name in a
       repository instead of reading the file. Grab the file from
@@ -610,6 +622,11 @@ sudo pacman -U ./whatsapp-desktop-*.pkg.tar.zst  <span class="c"># Arch</span></
     <div class="keycaps">
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></span><span>zoom in, out, reset</span></div>
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>,</kbd></span><span>Settings</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>1</kbd>&ndash;<kbd>9</kbd></span><span>switch account</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>A</kbd></span><span>add account</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>S</kbd></span><span>toggle sidebar</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>R</kbd></span><span>reload chat</span></div>
+      <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>W</kbd></span><span>close window</span></div>
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>I</kbd></span><span>devtools</span></div>
       <div class="keycap"><span class="keys"><kbd>Ctrl</kbd><kbd>Q</kbd></span><span>quit for real</span></div>
       <div class="keycap"><span class="keys"><kbd>Esc</kbd></span><span>close the emoji panel</span></div>
@@ -634,6 +651,7 @@ sudo pacman -U ./whatsapp-desktop-*.pkg.tar.zst  <span class="c"># Arch</span></
           <tr><td><code>font-size</code></td><td><code>16</code></td><td>size of the whole interface, in px</td></tr>
           <tr><td><code>zoom</code></td><td><code>1.0</code></td><td>also set with <kbd>Ctrl</kbd>+<kbd>+</kbd>/<kbd>-</kbd></td></tr>
           <tr><td><code>force-font</code></td><td><code>true</code></td><td>draw the page in one family</td></tr>
+          <tr><td><code>sidebar-collapsed</code></td><td><code>false</code></td><td>whether the multi-account sidebar switcher starts collapsed</td></tr>
         </tbody>
 
         <tbody>
@@ -667,16 +685,18 @@ sudo pacman -U ./whatsapp-desktop-*.pkg.tar.zst  <span class="c"># Arch</span></
           <tr><td><code>close-to-tray</code></td><td><code>true</code></td><td>closing leaves the client running</td></tr>
           <tr><td><code>minimize-to-tray</code></td><td><code>false</code></td><td>minimise is not close</td></tr>
           <tr><td><code>spellcheck</code></td><td><code>true</code></td><td>Chromium&#39;s own, in the box you type in</td></tr>
+          <tr><td><code>raise</code></td><td><code>auto</code></td><td>how the window is brought to front (<code>auto</code>, <code>activate</code>, <code>remap</code>)</td></tr>
         </tbody>
 
         <tbody>
-          <tr class="grp"><th colspan="3" scope="colgroup">[window] &middot; [links] &middot; [updates] <span>&mdash; one key each</span></th></tr>
+          <tr class="grp"><th colspan="3" scope="colgroup">[window] &middot; [links] &middot; [updates]</th></tr>
           <tr><td><code>[window] width</code>, <code>height</code></td><td><code>1200×800</code></td><td>remembered on exit</td></tr>
           <tr><td><code>[links] claim-scheme</code></td><td><code>true</code></td><td>open <code>whatsapp:</code> links here, not in a browser tab</td></tr>
           <tr><td><code>[updates] check</code></td><td><code>true</code></td><td>the daily look for a newer release; off, only About&#39;s <em>Check</em> asks</td></tr>
         </tbody>
       </table>
       </div>
+      <p class="note" style="margin-top: 14px; margin-bottom: 0;"><strong>Storage:</strong> Config is kept in <code>~/.config/whatsapp-desktop/whatsapp-desktop.conf</code>, and account definitions in <code>~/.config/whatsapp-desktop/accounts.json</code>. Primary session data lives in <code>~/.local/share/whatsapp-desktop</code>; secondary accounts use isolated Chromium partitions under <code>persist:account_&lt;id&gt;</code>.</p>
     </div>
 
     <div class="callout">

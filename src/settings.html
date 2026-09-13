@@ -440,15 +440,16 @@
     const settingsCancelAddBtn = document.getElementById('settingsCancelAddBtn');
     const settingsSaveAddBtn = document.getElementById('settingsSaveAddBtn');
 
-    const SETTINGS_PALETTE = [
-      '#0088cc', '#25D366', '#8b5cf6', '#ec4899',
+    const SETTINGS_DEFAULT_PALETTE = [
+      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
       '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
     ];
-    let selectedSettingsColor = SETTINGS_PALETTE[0];
+    let selectedSettingsColor = SETTINGS_DEFAULT_PALETTE[0];
 
-    if (settingsColorPicker) {
+    function renderSettingsPalette(colors) {
+      if (!settingsColorPicker) return;
       settingsColorPicker.innerHTML = '';
-      SETTINGS_PALETTE.forEach((col, idx) => {
+      colors.forEach((col, idx) => {
         const dot = document.createElement('div');
         dot.style.width = '24px';
         dot.style.height = '24px';
@@ -465,6 +466,17 @@
         });
         settingsColorPicker.appendChild(dot);
       });
+    }
+
+    renderSettingsPalette(SETTINGS_DEFAULT_PALETTE);
+
+    if (window.api && window.api.getPalette) {
+      window.api.getPalette().then(palette => {
+        if (Array.isArray(palette) && palette.length > 0) {
+          selectedSettingsColor = palette[0];
+          renderSettingsPalette(palette);
+        }
+      }).catch(console.error);
     }
 
     if (settingsAddAccountBtn) {
@@ -485,6 +497,7 @@
       settingsSaveAddBtn.addEventListener('click', async () => {
         const name = settingsAccountNameInput.value.trim();
         if (!name) {
+          settingsAccountNameInput.value = '';
           settingsAccountNameInput.focus();
           return;
         }

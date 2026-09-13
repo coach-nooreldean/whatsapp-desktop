@@ -139,8 +139,9 @@ screenshots:
 	@for s in $(SHOTS); do cp screenshots/$$s.png docs/assets/$$s.png; done
 	@echo "  SHOTS  screenshots/ and docs/assets/"
 
-# Replays a chat list past src/page/inject.js in plain node -- no browser, no
-# account. Every notification bug this client has had lived in that file.
+# Replays notifications, bidi heuristics, wording, styles, fonts, settings,
+# links, tray D-Bus protocol, update checks, accounts, and config in plain
+# node -- no browser, no network, and no real account needed.
 test:
 	@node tools/test-inject.js
 	@node tools/test-bidi.js
@@ -151,6 +152,8 @@ test:
 	@node tools/test-links.js
 	@node tools/test-tray.js
 	@node tools/test-update.js
+	@node tools/test-accounts.js
+	@node tools/test-config.js
 
 run:
 	@env -u ELECTRON_RUN_AS_NODE npm start

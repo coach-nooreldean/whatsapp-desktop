@@ -1192,7 +1192,9 @@ const drawStyleForView = async (item) => {
     try {
       const key = await item.view.webContents.insertCSS(css, { cssOrigin: 'user' });
       item.cssKeys.push(key);
-    } catch (e) {}
+    } catch (err) {
+      console.warn('Failed to insert user CSS for account view: %s', err.message);
+    }
   }
 };
 
@@ -2117,9 +2119,7 @@ const quit = () => {
   app.quit();
 };
 
-const wireIpc = () => {
-  ipcMain.on('wa:log', (event, message) => console.log('page: %s', message));
-
+const wireSettingsIpc = () => {
   ipcMain.handle('settings:get', () => {
     return {
       theme: config.get('view.theme') || 'system',
@@ -2193,7 +2193,9 @@ const wireIpc = () => {
     app.relaunch();
     app.quit();
   });
+};
 
+const wireAboutIpc = () => {
   /* What the About window draws itself from. The versions underneath are worth
      having here rather than only in a log: they are the first thing anybody
      asks for in a bug report, and they are the one thing on that window that can
@@ -2231,6 +2233,10 @@ const wireIpc = () => {
       aboutWin.close();
     }
   });
+};
+
+const wireWhatsAppPageIpc = () => {
+  ipcMain.on('wa:log', (event, message) => console.log('page: %s', message));
 
   /* The font stack the page actually asks for. fontconfig is read once per
      process, so a family learned here takes effect on the next start -- which
@@ -2517,13 +2523,69 @@ const wireIpc = () => {
     if (item && item.storeLive) return;
     if (item) item.unreadMessages = count.messages;
     if (accId === activeAccountId) unreadMessages = count.messages;
-    accountsMgr.setUnreadCount(accId, count.messages);
+    accountsMgr.setUnread(accId, count.messages);
     notifySidebarState();
     updateAggregateUnread();
   });
+};
 
-  /* ---------------------------------------------------- Sidebar & Multi-Account IPC */
+const addAccountSession = async (data) => {
+  const acc = accountsMgr.addAccount(data);
+  createAccountView(acc);
+  switchToAccount(acc.id);
+  notifySidebarState();
+  return acc;
+};
 
+const removeAccountSession = async (id, options = {}) => {
+  if (id === 'default') return false;
+  const acc = accountsMgr.getAccount(id);
+  if (!acc) return false;
+
+  if (options.confirm) {
+    const parentWin = options.window || win;
+    const { response } = await dialog.showMessageBox(parentWin, {
+      type: 'question',
+      buttons: ['Cancel', 'Remove / حذف'],
+      defaultId: 1,
+      cancelId: 0,
+      title: 'Remove Account / حذف الحساب',
+      message: `Are you sure you want to remove account "${acc.name}"? This will log out this session.`,
+    });
+    if (response !== 1) return false;
+  }
+
+  if (activeAccountId === id) {
+    switchToAccount('default');
+  }
+
+  const item = accountViews.get(id);
+  if (item) {
+    if (win && !win.isDestroyed() && win.contentView) {
+      try {
+        win.contentView.removeChildView(item.view);
+      } catch (err) {
+        console.warn('Failed to remove child view for account %s: %s', id, err.message);
+      }
+    }
+    accountViews.delete(id);
+  }
+
+  try {
+    const ses = session.fromPartition('persist:account_' + id);
+    await ses.clearStorageData();
+  } catch (err) {
+    console.error('Failed to clear partition storage for account %s: %s', id, err.message);
+  }
+
+  accountsMgr.removeAccount(id);
+  updateLayout();
+  notifySidebarState();
+  updateAggregateUnread();
+  return true;
+};
+
+const wireAccountsIpc = () => {
   ipcMain.handle('sidebar:get-state', () => {
     return {
       accounts: accountsMgr.getAccounts(),
@@ -2537,42 +2599,8 @@ const wireIpc = () => {
     switchToAccount(id);
   });
 
-  ipcMain.handle('sidebar:add-account', async (event, data) => {
-    const acc = accountsMgr.addAccount(data);
-    createAccountView(acc);
-    switchToAccount(acc.id);
-    notifySidebarState();
-    return acc;
-  });
-
-  ipcMain.handle('sidebar:update-account', async (event, id, updates) => {
-    const acc = accountsMgr.updateAccount(id, updates);
-    const item = accountViews.get(id);
-    if (item) item.account = acc;
-    notifySidebarState();
-    return acc;
-  });
-
   ipcMain.handle('sidebar:remove-account', async (event, id) => {
-    if (id === 'default') return false;
-    if (activeAccountId === id) switchToAccount('default');
-    const item = accountViews.get(id);
-    if (item) {
-      if (win && !win.isDestroyed() && win.contentView) {
-        win.contentView.removeChildView(item.view);
-      }
-      try { item.view.webContents.close(); } catch (e) {}
-      accountViews.delete(id);
-    }
-    try {
-      const ses = session.fromPartition('persist:account_' + id);
-      await ses.clearStorageData();
-    } catch (e) {}
-    accountsMgr.removeAccount(id);
-    updateLayout();
-    notifySidebarState();
-    updateAggregateUnread();
-    return true;
+    return removeAccountSession(id, { confirm: true, window: win });
   });
 
   ipcMain.on('sidebar:context-menu', (event, id) => {
@@ -2588,35 +2616,7 @@ const wireIpc = () => {
     if (id !== 'default') {
       menu.append(new MenuItem({
         label: 'Remove Account / حذف الحساب',
-        click: async () => {
-          const { response } = await dialog.showMessageBox(win, {
-            type: 'question',
-            buttons: ['Cancel', 'Remove / حذف'],
-            defaultId: 1,
-            cancelId: 0,
-            title: 'Remove Account / حذف الحساب',
-            message: `Are you sure you want to remove account "${acc.name}"? This will log out this session.`,
-          });
-          if (response === 1) {
-            if (activeAccountId === id) switchToAccount('default');
-            const item = accountViews.get(id);
-            if (item) {
-              if (win && !win.isDestroyed() && win.contentView) {
-                win.contentView.removeChildView(item.view);
-              }
-              try { item.view.webContents.close(); } catch (e) {}
-              accountViews.delete(id);
-            }
-            try {
-              const ses = session.fromPartition('persist:account_' + id);
-              await ses.clearStorageData();
-            } catch (e) {}
-            accountsMgr.removeAccount(id);
-            updateLayout();
-            notifySidebarState();
-            updateAggregateUnread();
-          }
-        },
+        click: () => removeAccountSession(id, { confirm: true, window: win }),
       }));
     }
     menu.popup({ window: win });
@@ -2636,9 +2636,9 @@ const wireIpc = () => {
     openAddAccountWindow();
   });
 
-  // Settings accounts IPC
   ipcMain.handle('accounts:get', () => accountsMgr.getAccounts());
   ipcMain.handle('accounts:get-active', () => activeAccountId);
+  ipcMain.handle('accounts:get-palette', () => DEFAULT_PALETTE);
   ipcMain.handle('accounts:switch', async (event, id) => {
     switchToAccount(id);
     if (win && !win.isDestroyed()) {
@@ -2647,34 +2647,17 @@ const wireIpc = () => {
     }
     return true;
   });
-  ipcMain.handle('accounts:add', async (event, data) => {
-    const acc = accountsMgr.addAccount(data);
-    createAccountView(acc);
-    switchToAccount(acc.id);
-    notifySidebarState();
-    return acc;
-  });
+  ipcMain.handle('accounts:add', async (event, data) => addAccountSession(data));
   ipcMain.handle('accounts:remove', async (event, id) => {
-    if (id === 'default') return false;
-    if (activeAccountId === id) switchToAccount('default');
-    const item = accountViews.get(id);
-    if (item) {
-      if (win && !win.isDestroyed() && win.contentView) {
-        win.contentView.removeChildView(item.view);
-      }
-      try { item.view.webContents.close(); } catch (e) {}
-      accountViews.delete(id);
-    }
-    try {
-      const ses = session.fromPartition('persist:account_' + id);
-      await ses.clearStorageData();
-    } catch (e) {}
-    accountsMgr.removeAccount(id);
-    updateLayout();
-    notifySidebarState();
-    updateAggregateUnread();
-    return true;
+    return removeAccountSession(id, { confirm: true, window: settingsWin || win });
   });
+};
+
+const wireIpc = () => {
+  wireSettingsIpc();
+  wireAboutIpc();
+  wireWhatsAppPageIpc();
+  wireAccountsIpc();
 };
 
 /* Where the chooser opens: the folder the last download was pointed at, and
@@ -2683,7 +2666,13 @@ const wireIpc = () => {
    dialog on nothing. */
 const downloadStart = () => {
   const kept = String(config.get('media.download-dir') || '');
-  try { if (kept && fs.statSync(kept).isDirectory()) return kept; } catch (e) {}
+  if (kept) {
+    try {
+      if (fs.existsSync(kept) && fs.statSync(kept).isDirectory()) return kept;
+    } catch (err) {
+      console.warn('Could not verify download directory %s: %s', kept, err.message);
+    }
+  }
   return app.getPath('downloads');
 };
 
@@ -2862,7 +2851,11 @@ function configureSession(ses) {
   wirePermissions(ses);
   wireScreenSharing(ses);
   if (config.get('behaviour.spellcheck')) {
-    try { ses.setSpellCheckerLanguages(['en-US']); } catch (e) {}
+    try {
+      ses.setSpellCheckerLanguages(['en-US']);
+    } catch (err) {
+      console.warn('Could not set spellchecker language: %s', err.message);
+    }
   }
 }
 
@@ -2913,15 +2906,7 @@ app.whenReady().then(() => {
 
   const ua = chromeUserAgent();
   app.userAgentFallback = ua;
-  const ses = session.defaultSession;
-  ses.setUserAgent(ua);
-  wireDownloads(ses);
-  wirePermissions(ses);
-  wireScreenSharing(ses);
-
-  if (config.get('behaviour.spellcheck')) {
-    try { ses.setSpellCheckerLanguages(['en-US']); } catch (e) {}
-  }
+  configureSession(session.defaultSession);
 
   const initialTheme = config.get('view.theme') || 'system';
   if (initialTheme === 'dark') {

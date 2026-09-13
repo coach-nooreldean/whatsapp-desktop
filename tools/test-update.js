@@ -23,33 +23,34 @@ const check = (label, got, want) => {
 
 /* --------------------------------------------------------------- the tags */
 
-check('a tag is read with its v', parse('v1.6.6').parts.join('.'), '1.6.6');
-check('and without one', parse('1.6.6').parts.join('.'), '1.6.6');
-check('a missing part counts as nothing', parse('1.7').parts.join('.'), '1.7.0');
-check('and so does a tag that is not one at all', parse('').parts.join('.'), '0.0.0');
+for (const [scenario, tag, want] of [
+  ['a tag with leading v is parsed to semantic version', 'v1.6.6', '1.6.6'],
+  ['a tag without leading v is normalized to semantic version', '1.6.6', '1.6.6'],
+  ['a missing minor/patch part counts as zero', '1.7', '1.7.0'],
+  ['an empty tag string normalizes to 0.0.0', '', '0.0.0'],
+]) {
+  check(scenario, parse(tag).parts.join('.'), want);
+}
 
 /* ------------------------------------------------------------ the answers */
 
-check('the release after this one is newer', isNewer('v1.6.7', '1.6.6'), true);
-check('the one running is not', isNewer('v1.6.6', '1.6.6'), false);
-/* The case that matters most: a client ahead of the latest release -- a build
-   from the checkout -- must never be told to go back. */
-check('and a version ahead of it is not either', isNewer('v1.6.6', '1.7.0'), false);
-
-/* The middle number moves rarely, and when it does it is a whole number bigger
-   than the patch it left behind. String order would read 1.10.0 as older. */
-check('ten is after nine, not before it', isNewer('v1.10.0', '1.9.9'), true);
-check('and a major release is after every one of them', isNewer('v2.0.0', '1.99.99'), true);
+/* A client ahead of the latest release (e.g. checkout build) must never be told to go back.
+   String order would read 1.10.0 as older than 1.9.9, so semantic comparison is required. */
+for (const [scenario, latest, current, want] of [
+  ['the release tag after this one is newer', 'v1.6.7', '1.6.6', true],
+  ['the running version itself is not newer', 'v1.6.6', '1.6.6', false],
+  ['a running version ahead of the latest release is not considered newer', 'v1.6.6', '1.7.0', false],
+  ['minor version ten is recognized as newer than nine', 'v1.10.0', '1.9.9', true],
+  ['a major version bump is recognized as newer than higher minor/patch', 'v2.0.0', '1.99.99', true],
+  ['a pre-release candidate is newer than the previous stable version', '1.6.7-rc1', '1.6.6', true],
+  ['a package revision suffix is not considered a newer version', '1.6.6-1', '1.6.6', false],
+]) {
+  check(scenario, isNewer(latest, current), want);
+}
 
 /* A release candidate is not the release. Nobody is told to install one. */
 check('a pre-release is older than the version it waits for',
       compare('1.6.7-rc1', '1.6.7'), -1);
-check('and it is still newer than the one before it',
-      isNewer('1.6.7-rc1', '1.6.6'), true);
-
-/* Packages carry a revision this client never sees, but a tag written that way
-   would be read here, and it is not a newer version of anything. */
-check('a package revision is not a newer version', isNewer('1.6.6-1', '1.6.6'), false);
 
 console.log(failures ? `\n${failures} failed` : '\nupdate checks pass');
 process.exit(failures ? 1 : 0);

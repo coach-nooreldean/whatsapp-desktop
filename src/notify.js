@@ -56,11 +56,20 @@ const avatarPath = base64 => {
    belongs to a client that is no longer running. */
 const sweepAvatars = () => {
   let names = [];
-  try { names = fs.readdirSync(runtimeDir()); } catch (e) { return; }
+  try {
+    names = fs.readdirSync(runtimeDir());
+  } catch (err) {
+    return;
+  }
   let removed = 0;
   for (const name of names) {
     if (!name.startsWith(AVATAR_PREFIX)) continue;
-    try { fs.unlinkSync(path.join(runtimeDir(), name)); removed++; } catch (e) {}
+    try {
+      fs.unlinkSync(path.join(runtimeDir(), name));
+      removed++;
+    } catch (err) {
+      // File may have been removed concurrently
+    }
   }
   if (removed) console.log('cleared %d notification picture(s) from the last session', removed);
 };
@@ -180,7 +189,15 @@ class Entry {
     this.ongoing = !!ongoing;
   }
 
-  _open() { try { this.onClick && this.onClick(); } catch (e) {} }
+  _open() {
+    if (typeof this.onClick === 'function') {
+      try {
+        this.onClick();
+      } catch (err) {
+        console.error('Failed to run notification click callback: %s', err.message);
+      }
+    }
+  }
 
   /* Watching one notification, and the way to take that one down again.
    *
@@ -201,7 +218,11 @@ class Entry {
     let ours = false;
     notification.__retire = () => {
       ours = true;
-      try { notification.close(); } catch (e) {}
+      try {
+        notification.close();
+      } catch (err) {
+        // Notification might already be destroyed or closed
+      }
     };
     notification.on('click', () => {
       this.settled = true;

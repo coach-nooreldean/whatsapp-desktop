@@ -68,13 +68,11 @@
         const wrap = document.createElement('div');
         wrap.className = 'account-item-wrap' + (acc.id === state.activeId ? ' active' : '');
 
-        // Active pill
         const pill = document.createElement('div');
         pill.className = 'active-pill';
         pill.style.backgroundColor = acc.color || '#25D366';
         wrap.appendChild(pill);
 
-        // Button
         const btn = document.createElement('button');
         btn.className = 'account-btn';
         btn.textContent = getInitials(acc.name);
@@ -82,26 +80,22 @@
         btn.style.color = acc.color || '#e9edef';
         btn.style.borderColor = acc.id === state.activeId ? (acc.color || '#00a884') : 'transparent';
 
-        // Unread badge
         const badge = document.createElement('div');
         badge.className = 'unread-badge' + (acc.unread > 0 ? ' visible' : '');
         badge.textContent = acc.unread > 99 ? '99+' : acc.unread;
         btn.appendChild(badge);
 
-        // Click to switch
         btn.addEventListener('click', () => {
           if (window.api && acc.id !== currentState.activeId) {
             window.api.switchAccount(acc.id);
           }
         });
 
-        // Right-click context menu
         btn.addEventListener('contextmenu', (e) => {
           e.preventDefault();
           if (window.api) window.api.showContextMenu(acc.id);
         });
 
-        // Hover tooltip
         btn.addEventListener('mouseenter', () => {
           if (isCollapsed) return;
           const rect = btn.getBoundingClientRect();
@@ -142,14 +136,12 @@
 
     addAccountBtn.addEventListener('click', openAddModal);
 
-    // Toggle collapse
     toggleSidebarBtn.addEventListener('click', () => {
       if (window.api && window.api.setCollapsed) {
         window.api.setCollapsed(true);
       }
     });
 
-    // Pull handle expands
     pullHandle.addEventListener('click', () => {
       if (window.api && window.api.setCollapsed) {
         window.api.setCollapsed(false);
@@ -171,7 +163,6 @@
     if (window.api) {
       window.api.getInitialState().then(render).catch(console.error);
       window.api.onStateChange(render);
-      window.api.onOpenAddModal(openAddModal);
       if (window.api.onCollapsedChange) {
         window.api.onCollapsedChange(setCollapsedUI);
       }

@@ -77,11 +77,23 @@ the latest release.
   shows. WebGPU is turned off deliberately: on Linux and Wayland its external
   texture path hands video frames back black, and a call camera that renders a
   black 1280×720 rectangle is what that looks like.
-- **Two windows of switches, and no text editor.** Settings (`Ctrl+,`, or the
+- **Multiple WhatsApp accounts side by side.** Run secondary accounts in
+  isolated partitions (`persist:account_<id>`) alongside your primary account
+  without session interference. Switch instantly with `Ctrl+1` through
+  `Ctrl+9` or via the vertical sidebar. Each account maintains its own unread
+  counts, notifications carry the account name prefix when multiple accounts
+  exist, clicking an account's notification switches directly to that account
+  and chat, and the tray icon and launcher badge reflect aggregate unread
+  messages across all accounts. The sidebar can be collapsed with
+  `Ctrl+Alt+S` or opened to add accounts with `Ctrl+Alt+A`.
+- **Windows of switches, and no text editor.** Settings (`Ctrl+,`, or the
   tray) has the theme — system, dark or light — start-at-login, what closing
-  the window does, which sounds you want and the zoom; *Fonts…* has the two
-  scripts. Everything lands the moment you set it. The tray menu itself is four
-  items and stays that way.
+  the window does, multi-account management, which sounds you want and the
+  zoom; *Fonts…* has the two scripts; *About WhatsApp* shows versions and
+  updates; and a dedicated *Add Account* window (`Ctrl+Alt+A`) lets you add
+  new accounts with customized names and palette colors. The tray menu
+  itself is five items (Open/Minimize, Settings, Fonts, About, and Quit)
+  and stays that way.
 - **Says when a new version is out.** *About WhatsApp* in the tray menu has the
   version running, a check against the latest release and a link to the site;
   the client also looks once a day by itself, and the tray item names the
@@ -142,7 +154,7 @@ heights match; every one of them is a real window, photographed by
 </p>
 
 <p align="center">
-  <sub><b>Settings</b> — theme, tray, notifications, zoom &nbsp;·&nbsp;
+  <sub><b>Settings</b> — theme, tray, accounts, notifications, zoom &nbsp;·&nbsp;
   <b>Fonts</b> — one for Latin, one for Arabic &nbsp;·&nbsp;
   <b>About</b> — the version, and whether a newer one is out</sub>
 </p>
@@ -184,6 +196,12 @@ make screenshots # re-photographs the three windows, for the README and the site
 | | |
 |---|---|
 | `Ctrl` `+` / `-` / `0` | zoom in, out, reset |
+| `Ctrl+,` | open Settings window |
+| `Ctrl+1` – `Ctrl+9` | switch to account 1 through 9 |
+| `Ctrl+Alt+A` | open Add Account window |
+| `Ctrl+Alt+S` | toggle accounts sidebar (collapse / expand) |
+| `Ctrl+R` | reload active conversation view |
+| `Ctrl+W` | close window (hides to tray) |
 | `Ctrl+Shift+I` | devtools |
 | `Ctrl+Q` | quit for real |
 | window close | hides to the tray, stays connected |
@@ -199,6 +217,7 @@ make screenshots # re-photographs the three windows, for the README and the site
 | `[view] font-size` | `16` | root font size in pixels — WhatsApp sizes in rem |
 | `[view] zoom` | `1.0` | also set with `Ctrl` `+`/`-` |
 | `[view] force-font` | `true` | draw the page in one family |
+| `[view] sidebar-collapsed` | `false` | whether the multi-account sidebar switcher starts collapsed |
 | `[fonts] latin-inherit` | `true` | Latin follows the desktop font; off to choose one |
 | `[fonts] latin-family` | the desktop font | family for Latin letters, digits and punctuation |
 | `[fonts] latin-size` | `100` | its size, as a percentage of the family's own |
@@ -225,26 +244,38 @@ make screenshots # re-photographs the three windows, for the README and the site
 | `[links] claim-scheme` | `true` | open `whatsapp:` links here rather than in a browser tab |
 | `[updates] check` | `true` | the daily look for a newer release; off, nothing asks by itself and *Check* in About still does |
 
-State lives in `~/.local/share/whatsapp-desktop`.
+Configuration lives in `~/.config/whatsapp-desktop/whatsapp-desktop.conf`.
+Account metadata lives in `~/.config/whatsapp-desktop/accounts.json`.
+Primary session and application state live in `~/.local/share/whatsapp-desktop`, while secondary accounts use isolated partitions under Chromium partition storage (`persist:account_<id>`).
 
 ## Layout
 
 | | |
 |---|---|
-| `src/main.js` | window, session, tray, notifications, switches |
-| `src/preload.js` | the bridge — the page's world on one side, IPC on the other |
-| `src/page/inject.js` | the chat-list watcher and the notification shim, in WhatsApp's own world |
-| `src/notify.js` | the banner policy |
-| `src/style.js` | the user stylesheet — the font, and the room Arabic needs |
-| `src/settings.html`, `src/fonts.html` | the two windows of switches, and `src/window.css`, which is the look of both |
-| `src/about.html` | the About window, and the update check it shows |
-| `src/update.js` | asks GitHub for the latest release, and compares |
-| `src/fonts.js`, `src/tray.js`, `src/config.js`, `src/desktop.js`, `src/sound.js`, `src/debug.js` | |
+| `src/main.js` | window, multi-account view management, session partitions, tray, notifications, shortcuts |
+| `src/preload.js` | the bridge for WhatsApp Web views — page world on one side, IPC on the other |
+| `src/accounts.js` | multi-account manager (metadata, partitions, palette colors, unread tracking) |
+| `src/sidebar.html`, `src/sidebar.css`, `src/sidebar-preload.js` | vertical accounts sidebar switcher |
+| `src/add-account.html` | dedicated Add Account window |
+| `src/settings.html`, `src/settings-preload.js` | Settings window (theme, startup, accounts manager, sounds, zoom) |
+| `src/fonts.html`, `src/fonts.js` | Fonts window and font catalogue |
+| `src/about.html`, `src/about-preload.js` | About window and update checker UI |
+| `src/update.js` | queries GitHub releases for updates |
+| `src/config.js` | INI configuration reader, writer, and defaults |
+| `src/notify.js` | desktop banner management, avatar caching, and notification timeout |
+| `src/autostart.js` | desktop autostart entry management (`~/.config/autostart/`) |
+| `src/bidi.js` | Arabic and Latin text direction heuristics |
+| `src/links.js` | `whatsapp:` URI scheme and web URL parser |
+| `src/wording.js` | notification phrases and media marks |
+| `src/style.js` | user stylesheets, custom font injection, and chat layout adjustments |
+| `src/tray.js`, `src/tray-sni.js`, `src/dbus.js` | StatusNotifierItem D-Bus and AppIndicator tray integration |
+| `src/desktop.js`, `src/sound.js`, `src/debug.js` | desktop environment integration, notification tones, debug tools |
+| `src/page/inject.js`, `src/page/avatar.js`, `src/page/media.js`, `src/page/pictures.js`, `src/page/store.js` | in-page injection scripts |
 | `tools/make-icons.py` | regenerates `data/icons` — `make icons`, never hand-edit the PNGs |
 | `tools/make-og.py` | redraws the site's link-preview card — `make og` |
 | `tools/capture-windows.js` | photographs the three windows above — `make screenshots`, which also copies them to `docs/assets` |
 | `docs/` | the landing page, served by GitHub Pages from `main` |
-| `tools/test-inject.js`, `tools/test-style.js`, `tools/test-settings.js` | `make test` |
+| `tools/test-*.js` | `make test` test runners (inject, bidi, wording, style, fonts, settings, links, tray, update, accounts, config) |
 
 ## Notifications, when they do not appear
 

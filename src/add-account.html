@@ -187,11 +187,11 @@
   </div>
 
   <script>
-    const PALETTE = [
-      '#0088cc', '#25D366', '#8b5cf6', '#ec4899',
+    const DEFAULT_COLORS = [
+      '#25D366', '#0088cc', '#8b5cf6', '#ec4899',
       '#f59e0b', '#06b6d4', '#ef4444', '#10b981'
     ];
-    let selectedColor = PALETTE[0];
+    let selectedColor = DEFAULT_COLORS[0];
 
     const closeBtn = document.getElementById('closeBtn');
     const cancelBtn = document.getElementById('cancelBtn');
@@ -199,18 +199,31 @@
     const nameInput = document.getElementById('accountNameInput');
     const paletteGrid = document.getElementById('paletteGrid');
 
-    // Populate color dots
-    PALETTE.forEach((col, idx) => {
-      const dot = document.createElement('div');
-      dot.className = 'color-dot' + (idx === 0 ? ' selected' : '');
-      dot.style.backgroundColor = col;
-      dot.addEventListener('click', () => {
-        document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
-        dot.classList.add('selected');
-        selectedColor = col;
+    function renderPalette(colors) {
+      paletteGrid.innerHTML = '';
+      colors.forEach((col, idx) => {
+        const dot = document.createElement('div');
+        dot.className = 'color-dot' + (idx === 0 ? ' selected' : '');
+        dot.style.backgroundColor = col;
+        dot.addEventListener('click', () => {
+          document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+          dot.classList.add('selected');
+          selectedColor = col;
+        });
+        paletteGrid.appendChild(dot);
       });
-      paletteGrid.appendChild(dot);
-    });
+    }
+
+    renderPalette(DEFAULT_COLORS);
+
+    if (window.api && window.api.getPalette) {
+      window.api.getPalette().then(palette => {
+        if (Array.isArray(palette) && palette.length > 0) {
+          selectedColor = palette[0];
+          renderPalette(palette);
+        }
+      }).catch(console.error);
+    }
 
     const closeSelf = () => {
       if (window.api && window.api.close) window.api.close();
@@ -222,6 +235,7 @@
     const submit = async () => {
       const name = nameInput.value.trim();
       if (!name) {
+        nameInput.value = '';
         nameInput.focus();
         return;
       }
@@ -248,7 +262,6 @@
       if (e.key === 'Escape') closeSelf();
     });
 
-    // Theme sync
     if (window.api && window.api.getSettings) {
       window.api.getSettings().then(settings => {
         if (settings && settings['view.theme']) {

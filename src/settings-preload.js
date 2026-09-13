@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   restart: () => ipcRenderer.send('settings:restart'),
   getAccounts: () => ipcRenderer.invoke('accounts:get'),
   getActiveAccountId: () => ipcRenderer.invoke('accounts:get-active'),
+  getPalette: () => ipcRenderer.invoke('accounts:get-palette'),
   switchAccount: id => ipcRenderer.invoke('accounts:switch', id),
   addAccount: data => ipcRenderer.invoke('accounts:add', data),
   removeAccount: id => ipcRenderer.invoke('accounts:remove', id),

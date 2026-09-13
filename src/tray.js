@@ -63,7 +63,11 @@ const waitForHost = onHost => {
 
   const stop = () => {
     if (!monitor) return;
-    try { monitor.kill(); } catch (e) {}
+    try {
+      monitor.kill();
+    } catch (err) {
+      // Monitor process might have already exited
+    }
     monitor = null;
   };
 
@@ -240,10 +244,10 @@ class ElectronTray {
      rather than asked now, because the menu that was clicked has had the
      keyboard for as long as it was open. */
   act() {
-    const h = this.handlers;
-    if (this.inFront && h.onHide) h.onHide();
-    else if (!this.inFront && h.onShow) h.onShow();
-    else if (h.onToggle) h.onToggle();
+    const handlers = this.handlers;
+    if (this.inFront && handlers.onHide) handlers.onHide();
+    else if (!this.inFront && handlers.onShow) handlers.onShow();
+    else if (handlers.onToggle) handlers.onToggle();
   }
 
   /* The Electron tray's word never moves, for the reason written over
@@ -263,7 +267,11 @@ class ElectronTray {
   destroy() {
     if (this.stopWaiting) this.stopWaiting();
     if (!this.tray) return;
-    try { this.tray.destroy(); } catch (e) {}
+    try {
+      this.tray.destroy();
+    } catch (err) {
+      // Tray instance might already be destroyed
+    }
     this.tray = null;
   }
 }

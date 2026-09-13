@@ -40,12 +40,14 @@ const check = (label, got, want) => {
 
 console.log('driving src/bidi.js\n');
 
-check('an Arabic message is right to left', bidi.directionOf('بالنسبه للخريجين'), 'rtl');
-check('an English one is left to right', bidi.directionOf('see you tomorrow'), 'ltr');
-/* Neutral text has no direction to state, and stating one for it would put an
-   invisible character in front of a banner that reads "👍" for no gain. */
-check('digits and emoji have no direction of their own', bidi.directionOf('12 👍 :)'), null);
-check('and neither has nothing at all', bidi.directionOf(''), null);
+for (const [scenario, input, want] of [
+  ['an Arabic message resolves direction to right to left', 'بالنسبه للخريجين', 'rtl'],
+  ['an English message resolves direction to left to right', 'see you tomorrow', 'ltr'],
+  ['digits and emoji have no direction of their own and resolve to null', '12 👍 :)', null],
+  ['an empty string has no direction of its own and resolves to null', '', null],
+]) {
+  check(scenario, bidi.directionOf(input), want);
+}
 
 /* The heart of it: a Latin display name in front of an Arabic message must not
    decide which way the message runs, and the message must not decide where the
@@ -57,21 +59,21 @@ check('an Arabic message shares the line, inside an isolate of its own',
       bidi.line('Salah', 'بالنسبه للخريجين'),
       LRM + FSI + 'Salah' + PDI + ': ' + FSI + 'بالنسبه للخريجين' + PDI);
 
-check('and an English message under the same name is shaped the same way',
+check('an English message under a Latin name is isolated with LRM',
       bidi.line('Salah', 'see you tomorrow'),
       LRM + FSI + 'Salah' + PDI + ': ' + FSI + 'see you tomorrow' + PDI);
 
 /* And an Arabic name is not a reason to put it anywhere else: "دايما الاسم علي
    الشمال سواء كان الاسم عربي او انجليزي". The LRM is what holds it there -- the
    name's own letters would otherwise take the line right to left with them. */
-check('an Arabic name is pinned to the left the same way',
+check('an Arabic name in front of an Arabic message is pinned to the left with LRM',
       bidi.line('صلاح', 'تمام يا معلم'),
       LRM + FSI + 'صلاح' + PDI + ': ' + FSI + 'تمام يا معلم' + PDI);
 
 /* A direct chat has no sender to print, and the message stands on its own. */
 check('a direct message carries the mark and nothing else',
       bidi.line('', 'يعم خد راحتك'), RLM + 'يعم خد راحتك');
-check('and an English one the other mark',
+check('a direct English message carries the LRM mark',
       bidi.line('', 'on my way'), LRM + 'on my way');
 
 /* A message with no direction of its own falls back to the whole line, so a
@@ -88,11 +90,11 @@ check('a message with no direction of its own is isolated all the same',
 check('a mention at the head does not turn the message round',
       bidi.directionOf('@' + bidi.isolate('Abdallah Shehawey') +
                        ' هو انا لما اجي اكتب رساله عربي'), 'rtl');
-check('and the same name loose in the text still decides, as it should',
+check('a Latin name embedded unisolated within Arabic text determines overall direction',
       bidi.directionOf('Abdallah هو انا لما اجي اكتب رساله عربي'), 'ltr');
 check('an isolate that is never closed swallows the rest of the line',
       bidi.directionOf(FSI + 'Abdallah'), null);
-check('and one isolate does not close two',
+check('nested isolates close sequentially without corrupting direction resolution',
       bidi.directionOf(FSI + FSI + 'Abdallah' + PDI + PDI + ' تمام'), 'rtl');
 /* A PDI with nothing open in front of it is not an error and not a direction. */
 check('a stray PDI is ignored', bidi.directionOf(PDI + 'تمام'), 'rtl');
@@ -105,7 +107,7 @@ check('a Latin one left to right',
 /* A phone number has no strong character in it, so there is no direction to
    state and no mark is added: an invisible character in a title the user may
    well copy out is a cost with nothing on the other side of it. */
-check('and one made of digits is left exactly as it is',
+check('a phone number title made of digits receives no bidi direction mark',
       bidi.paragraph('+20 10 03734117'), '+20 10 03734117');
 
 /* ------------------------------------------------------------ one paragraph */
@@ -120,16 +122,16 @@ check('a message of several lines is run together into one paragraph',
       bidi.paragraph('We are hiring / IT\nتبحث سلسله مطاعم\nرواتب مجزيه'),
       LRM + 'We are hiring / IT تبحث سلسله مطاعم رواتب مجزيه');
 /* A blank line is a break like any other and leaves no gap of its own. */
-check('a blank line between them leaves one space and no more',
+check('consecutive newlines in multi-line message are collapsed to single space',
       bidi.paragraph('رواتب مجزيه\n\n01148813215'),
       RLM + 'رواتب مجزيه 01148813215');
-check('the same message under a name is one isolate, not several lines',
+check('multi-line message under a sender name is isolated as one unified line',
       bidi.line('Mo farhat', 'We are hiring / IT\nتبحث سلسله مطاعم'),
       LRM + FSI + 'Mo farhat' + PDI + ': ' + FSI + 'We are hiring / IT تبحث سلسله مطاعم' + PDI);
 /* And the separator this module used to write is flattened on the way in the
    same way a newline is, so text that has been through it once cannot come back
    carrying a break. */
-check('the paragraph separator is flattened too, wherever it came from',
+check('embedded paragraph separator U+2029 is flattened to space',
       bidi.line('Ahmed', 'one\u2029two'),
       LRM + FSI + 'Ahmed' + PDI + ': ' + FSI + 'one two' + PDI);
 
@@ -140,7 +142,7 @@ check('the paragraph separator is flattened too, wherever it came from',
 check('an English word inside an Arabic message stays inside it',
       bidi.line('Salah', 'شكله مشغل الاجينت local'),
       LRM + FSI + 'Salah' + PDI + ': ' + FSI + 'شكله مشغل الاجينت local' + PDI);
-check('and the isolated message is what decides its own direction',
+check('isolated Arabic message containing embedded English retains RTL direction',
       bidi.directionOf('شكله مشغل الاجينت local'), 'rtl');
 
 /* ------------------------------------------------- the mark, in front of it */
@@ -157,7 +159,7 @@ check('a mark opens the line the sender and the message share',
    message stops speaking for the paragraph: the mark opens it, the paragraph is
    left to right because the mark is, and the message goes inside an isolate so
    an Arabic one still runs right to left inside the line. */
-check('and on a direct message it opens a line with no name on it',
+check('a marked direct message opens with mark followed by isolated message',
       bidi.line('', 'يعم خد راحتك', wording.MENTION_MARK),
       LRM + 'Mentioned you: ' + FSI + 'يعم خد راحتك' + PDI);
 
@@ -166,7 +168,7 @@ check('and on a direct message it opens a line with no name on it',
 check('a message with no mark is exactly the line it always was',
       bidi.line('Ahmed', 'on my way', ''),
       LRM + FSI + 'Ahmed' + PDI + ': ' + FSI + 'on my way' + PDI);
-check('and a mark of nothing but spaces counts as no mark at all',
+check('a whitespace-only mark is ignored without adding extra spacing',
       bidi.line('Ahmed', 'on my way', '   '),
       LRM + FSI + 'Ahmed' + PDI + ': ' + FSI + 'on my way' + PDI);
 
@@ -187,7 +189,7 @@ for (const [label, body] of [
 check('a reaction names the person without claiming they said it',
       bidi.did('Mega', 'reacted \u{1F602} to: نتقابل بكرة'),
       LRM + FSI + 'Mega' + PDI + ' ' + FSI + 'reacted \u{1F602} to: نتقابل بكرة' + PDI);
-check('and a reaction aimed at the user takes the mark the same way',
+check('a reaction aimed at the user prepends reply mark to isolated reaction text',
       bidi.did('Mega', 'reacted \u{1F602} to: نتقابل بكرة', wording.REPLY_MARK),
       LRM + 'Replied to you: ' + FSI + 'Mega' + PDI + ' ' +
       FSI + 'reacted \u{1F602} to: نتقابل بكرة' + PDI);
@@ -198,7 +200,7 @@ check('and a reaction aimed at the user takes the mark the same way',
 check('a redacted body is words and nothing else',
       bidi.words(wording.MENTION_MARK, '\u{1F4F7} Photo'),
       'Mentioned you: \u{1F4F7} Photo');
-check('and the parts that are not there are not written',
+check('a redacted body omits undefined or missing mark components',
       bidi.words('', null, 'New message'), 'New message');
 check('nothing to say is nothing', bidi.words(), '');
 

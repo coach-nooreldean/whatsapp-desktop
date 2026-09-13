@@ -132,7 +132,7 @@ const open = async (file, answer) => {
     assert.strictEqual(w.el('zoomVal').textContent, '100%');
     await w.el('zoomIn').fire('click');
     assert.strictEqual(w.last('view.zoom'), 1.1);
-    assert.strictEqual(w.el('zoomVal').textContent, '110%', 'and the window says so');
+    assert.strictEqual(w.el('zoomVal').textContent, '110%', 'zoomIn button updates displayed percentage text');
     await w.el('zoomOut').fire('click');
     assert.strictEqual(w.last('view.zoom'), 1);
 
@@ -154,8 +154,8 @@ const open = async (file, answer) => {
        is the one way to it and it had better work. */
     await w.el('themeLight').fire('click');
     assert.deepStrictEqual(w.called.pop(), ['theme', 'light']);
-    assert.ok(w.el('themeLight').classList.contains('active'), 'and the button says so');
-    assert.ok(!w.el('themeDark').classList.contains('active'), 'one at a time');
+    assert.ok(w.el('themeLight').classList.contains('active'), 'clicking themeLight adds active class');
+    assert.ok(!w.el('themeDark').classList.contains('active'), 'themeDark loses active class when themeLight is active');
 
     w.el('autostartToggle').checked = false;
     await w.el('autostartToggle').fire('change');
@@ -170,7 +170,7 @@ const open = async (file, answer) => {
     const html = read('settings.html');
     assert.doesNotMatch(html, /chat-font-size|chatFont/, 'no key and no control for it');
     assert.doesNotMatch(read('fonts.html'), /chat-font-size|chatFont/,
-                        'and it did not follow the fonts into their window');
+                        'fonts.html does not contain legacy chat font size controls');
   }
 
   /* -------------------------------------------------------------- fonts */
@@ -189,7 +189,7 @@ const open = async (file, answer) => {
     await w.el('arabicInherit').fire('change');
     assert.strictEqual(w.last('fonts.arabic-inherit'), false);
     assert.ok(!w.el('arabicControls').classList.contains('locked'), 'Arabic is loose now');
-    assert.ok(w.el('latinControls').classList.contains('locked'), 'and Latin is untouched');
+    assert.ok(w.el('latinControls').classList.contains('locked'), 'unlocking Arabic leaves Latin locked');
     assert.strictEqual(w.el('latinFamily').disabled, true);
 
     w.el('arabicFamily').value = 'Vazirmatn';
@@ -237,7 +237,7 @@ const open = async (file, answer) => {
     delete answer.fonts;
     const w = await open('fonts.html', answer);
     assert.strictEqual(w.el('fontsSection').hidden, true, 'no catalogue, no controls');
-    assert.strictEqual(w.el('noCatalogue').hidden, false, 'and it says so');
+    assert.strictEqual(w.el('noCatalogue').hidden, false, 'missing catalogue displays explanation message');
   }
 
   console.log('settings and fonts window checks pass');

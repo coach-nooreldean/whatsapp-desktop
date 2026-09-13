@@ -20,6 +20,7 @@ const DEFAULTS = {
   'view.font-size': 16,            // WhatsApp sizes in rem, so this scales the client
   'view.zoom': 1.0,
   'view.force-font': true,         // draw the page in one family, like a browser told to ignore page fonts
+  'view.sidebar-collapsed': false, // whether the multi-account sidebar is collapsed
   /* A font per script, and a switch per script to say whether the desktop's own
      is being followed. Two switches and not one, because the two questions are
      genuinely separate: an owner who wants a different Arabic face has no
@@ -123,7 +124,14 @@ class Config {
 
   reload() {
     let text = '';
-    try { text = fs.readFileSync(CONFIG_PATH, 'utf8'); } catch (e) { return; }
+    try {
+      text = fs.readFileSync(CONFIG_PATH, 'utf8');
+    } catch (err) {
+      if (err.code !== 'ENOENT') {
+        console.warn('could not read %s: %s', CONFIG_PATH, err.message);
+      }
+      return;
+    }
     const raw = parse(text);
     for (const [key, fallback] of Object.entries(DEFAULTS)) {
       if (raw[key] !== undefined) this.values[key] = coerce(raw[key], fallback);
@@ -138,20 +146,22 @@ class Config {
      the zoom level. A hand-written config keeps its comments and its layout,
      because the file is rewritten from the values it already held plus these. */
   save() {
-    const v = this.values;
+    const values = this.values;
     const text = [
       '# whatsapp-desktop -- every key is optional; delete one to get the default back.',
       '',
       '[view]',
       '# Theme mode: system (follow desktop), dark, or light.',
-      `theme = ${v['view.theme'] || 'system'}`,
+      `theme = ${values['view.theme'] || 'system'}`,
       '# Family for everything the client draws. Empty follows the desktop font.',
-      `font = ${v['view.font']}`,
+      `font = ${values['view.font']}`,
       '# Root font size in pixels. WhatsApp sizes in rem, so this scales the client.',
-      `font-size = ${v['view.font-size']}`,
-      `zoom = ${Number(v['view.zoom']).toFixed(2)}`,
+      `font-size = ${values['view.font-size']}`,
+      `zoom = ${Number(values['view.zoom']).toFixed(2)}`,
       '# Draw the whole page in one family, the way a browser told to ignore page fonts does.',
-      `force-font = ${v['view.force-font']}`,
+      `force-font = ${values['view.force-font']}`,
+      '# Whether the multi-account sidebar switcher starts collapsed.',
+      `sidebar-collapsed = ${values['view.sidebar-collapsed']}`,
       '',
       '[fonts]',
       '# One switch per script. On: that script is drawn in the desktop font,',
@@ -159,89 +169,97 @@ class Config {
       "# ignored -- so a choice is still here to come back to. Off: it is drawn",
       '# in what was chosen for it. The two are separate on purpose: an Arabic',
       '# face of your own does not oblige you to pick a Latin one.',
-      `latin-inherit = ${v['fonts.latin-inherit']}`,
+      `latin-inherit = ${values['fonts.latin-inherit']}`,
       '# The family for Latin text. Empty follows the desktop font.',
-      `latin-family = ${v['fonts.latin-family']}`,
+      `latin-family = ${values['fonts.latin-family']}`,
       '# Its size, as a percentage of the size that family is drawn at.',
-      `latin-size = ${Math.round(Number(v['fonts.latin-size']) || 100)}`,
+      `latin-size = ${Math.round(Number(values['fonts.latin-size']) || 100)}`,
       "# Draw Latin in the family's own bold or italic face. A family that ships",
       '# neither cannot be made to have one: nothing is synthesised here.',
-      `latin-bold = ${v['fonts.latin-bold']}`,
-      `latin-italic = ${v['fonts.latin-italic']}`,
+      `latin-bold = ${values['fonts.latin-bold']}`,
+      `latin-italic = ${values['fonts.latin-italic']}`,
       '# And the same for Arabic. Empty family: whatever the system already draws',
       '# Arabic in, which is what a size on its own needs to hang on.',
-      `arabic-inherit = ${v['fonts.arabic-inherit']}`,
-      `arabic-family = ${v['fonts.arabic-family']}`,
-      `arabic-size = ${Math.round(Number(v['fonts.arabic-size']) || 100)}`,
-      `arabic-bold = ${v['fonts.arabic-bold']}`,
-      `arabic-italic = ${v['fonts.arabic-italic']}`,
+      `arabic-inherit = ${values['fonts.arabic-inherit']}`,
+      `arabic-family = ${values['fonts.arabic-family']}`,
+      `arabic-size = ${Math.round(Number(values['fonts.arabic-size']) || 100)}`,
+      `arabic-bold = ${values['fonts.arabic-bold']}`,
+      `arabic-italic = ${values['fonts.arabic-italic']}`,
       '',
       '[window]',
-      `width = ${Math.round(v['window.width'])}`,
-      `height = ${Math.round(v['window.height'])}`,
+      `width = ${Math.round(values['window.width'])}`,
+      `height = ${Math.round(values['window.height'])}`,
       '',
       '[behaviour]',
       '# Closing the window leaves the client running in the tray.',
-      `close-to-tray = ${v['behaviour.close-to-tray']}`,
+      `close-to-tray = ${values['behaviour.close-to-tray']}`,
       '# Minimising does the same. Off by default: minimise is not close.',
-      `minimize-to-tray = ${v['behaviour.minimize-to-tray']}`,
-      `spellcheck = ${v['behaviour.spellcheck']}`,
+      `minimize-to-tray = ${values['behaviour.minimize-to-tray']}`,
+      `spellcheck = ${values['behaviour.spellcheck']}`,
       '# How the window is brought to the front when a banner is clicked, a link',
       '# is followed, or the tray is asked. auto: worked out from the session and',
       '# corrected once from what the window actually did. activate: ask the',
       '# compositor for it, which X11 always honours. remap: take the window down',
       '# and open it again, which is the only way up on some Wayland compositors.',
-      `raise = ${v['behaviour.raise'] || 'auto'}`,
+      `raise = ${values['behaviour.raise'] || 'auto'}`,
       '',
       '[notifications]',
-      `enabled = ${v['notifications.enabled']}`,
+      `enabled = ${values['notifications.enabled']}`,
       '# A tone for the banners this client raises itself. WhatsApp plays its own',
       '# for the ones it raises, and two sounds for one message is worse than none.',
-      `sound = ${v['notifications.sound']}`,
+      `sound = ${values['notifications.sound']}`,
       '# WhatsApp plays a tone of its own when a message of yours goes out. Off',
       '# here: the message is already on screen, with a tick under it, in the',
       '# window you are looking at.',
-      `outgoing-sound = ${v['notifications.outgoing-sound']}`,
+      `outgoing-sound = ${values['notifications.outgoing-sound']}`,
       '# WhatsApp also plays one for a message arriving while the window is away,',
       '# and that is the only moment it announces anything itself. Off here, so',
       '# that a message sounds the same whether the window is in front or in the',
       '# tray: the client plays the desktop tone for both. Turn it on to hear',
       "# WhatsApp's own tone instead -- and then the window in front stays silent,",
       '# because that is the half WhatsApp does not announce.',
-      `whatsapp-sound = ${v['notifications.whatsapp-sound']}`,
+      `whatsapp-sound = ${values['notifications.whatsapp-sound']}`,
       '# Seconds before a banner is taken down and filed silently. GNOME parks a',
       '# banner under an idle pointer for ever, and one parked banner swallows',
       '# every message behind it.',
-      `banner-seconds = ${v['notifications.banner-seconds']}`,
+      `banner-seconds = ${values['notifications.banner-seconds']}`,
       '# Keep the message itself off the screen: a banner then says which chat it',
       '# came from and what kind of thing arrived, and nothing of what was said.',
-      `hide-preview = ${v['notifications.hide-preview']}`,
+      `hide-preview = ${values['notifications.hide-preview']}`,
       '',
       '[media]',
       '# WhatsApp counts a sticker as a photo for auto-download, so turning photos',
       '# off leaves every sticker as a blank space with no way to fetch it. The',
       '# phone always fetches stickers; so does this, unless it is turned off here.',
-      `download-stickers = ${v['media.download-stickers']}`,
+      `download-stickers = ${values['media.download-stickers']}`,
       "# A voice note that is only paused leaves its card in the desktop's",
       '# notification centre until the note has played out -- Chromium keeps the',
       '# media session for a paused player, and the shell shows every session it',
       '# can see. On, the card goes down with the pause and comes back when the',
       '# note does. Turn it off to keep a paused note on the shell, where its',
       '# play button can start it again.',
-      `hide-controls-when-paused = ${v['media.hide-controls-when-paused']}`,
+      `hide-controls-when-paused = ${values['media.hide-controls-when-paused']}`,
       '# Every download asks where to put it. Off, and they land in ~/Downloads',
       '# the way a phone does it, with a number on the end of a name already taken.',
-      `ask-where-to-save = ${v['media.ask-where-to-save']}`,
+      `ask-where-to-save = ${values['media.ask-where-to-save']}`,
       '# The folder the last download was pointed at, so the chooser opens there.',
-      `download-dir = ${v['media.download-dir'] || ''}`,
+      `download-dir = ${values['media.download-dir'] || ''}`,
+      '',
+      '[links]',
+      '# Register as default scheme handler for whatsapp:// links.',
+      `claim-scheme = ${values['links.claim-scheme']}`,
+      '',
+      '[updates]',
+      '# Check GitHub daily for client updates.',
+      `check = ${values['updates.check']}`,
       '',
     ].join('\n');
 
     try {
       fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
       fs.writeFileSync(CONFIG_PATH, text);
-    } catch (e) {
-      console.warn('could not write %s: %s', CONFIG_PATH, e.message);
+    } catch (err) {
+      console.warn('could not write %s: %s', CONFIG_PATH, err.message);
     }
   }
 }

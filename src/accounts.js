@@ -15,10 +15,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 
-const CONFIG_DIR = path.join(
-  process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'),
-  'whatsapp-desktop'
-);
+const { CONFIG_DIR } = require('./config.js');
 const ACCOUNTS_PATH = path.join(CONFIG_DIR, 'accounts.json');
 
 const DEFAULT_PALETTE = [
@@ -132,9 +129,11 @@ class AccountsManager {
     const randomSuffix = crypto.randomBytes(4).toString('hex');
     const id = `acc_${Date.now().toString(36)}_${randomSuffix}`;
     const chosenColor = color || DEFAULT_PALETTE[this.accounts.length % DEFAULT_PALETTE.length];
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    const accountName = trimmedName || `حساب ${this.accounts.length + 1}`;
     const newAccount = {
       id,
-      name: (name || `حساب ${this.accounts.length + 1}`).trim(),
+      name: accountName,
       color: chosenColor,
       partition: `persist:account_${id}`,
       isDefault: false,
@@ -149,11 +148,13 @@ class AccountsManager {
     const acc = this.accounts.find(a => a.id === id);
     if (!acc) return null;
 
-    if (updates.name && typeof updates.name === 'string') {
-      acc.name = updates.name.trim();
+    if (updates && typeof updates.name === 'string') {
+      const trimmed = updates.name.trim();
+      if (trimmed) acc.name = trimmed;
     }
-    if (updates.color && typeof updates.color === 'string') {
-      acc.color = updates.color.trim();
+    if (updates && typeof updates.color === 'string') {
+      const trimmed = updates.color.trim();
+      if (trimmed) acc.color = trimmed;
     }
     this.save();
     return { ...acc };
@@ -182,7 +183,7 @@ class AccountsManager {
   }
 
   setUnreadCount(id, count) {
-    return this.setUnread(id, count);
+    this.setUnread(id, count);
   }
 
   getTotalUnread() {

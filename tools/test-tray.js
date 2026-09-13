@@ -79,7 +79,7 @@ const build = () => {
   check('a window the owner is looking at is offered to the tray',
         t.openMenu(), 'Minimize to Tray');
   t.click();
-  check('and clicking that puts it there', t.ran.join(), 'hide');
+  check('clicking Minimize to Tray emits hide action', t.ran.join(), 'hide');
 }
 
 {
@@ -88,7 +88,7 @@ const build = () => {
   check('a window that is away is offered back',
         t.openMenu(), 'Open WhatsApp');
   t.click();
-  check('and clicking that fetches it', t.ran.join(), 'show');
+  check('clicking Open WhatsApp emits show action', t.ran.join(), 'show');
 }
 
 /* ------------------------------------------------- up, but behind something */
@@ -102,7 +102,7 @@ const build = () => {
   check('a window standing behind another one is fetched, not put away',
         t.openMenu(), 'Open WhatsApp');
   t.click();
-  check('and its click opens rather than hides', t.ran.join(), 'show');
+  check('clicking Open WhatsApp when window is occluded brings window to front', t.ran.join(), 'show');
 }
 
 /* ------------------------------------------- while the desktop is drawing it */
@@ -121,7 +121,7 @@ const build = () => {
   t.window.moveTo(false);          // the grace running out, mid-popup
   check('the word does not change under an open menu', t.label(), drawn);
   t.click();
-  check('and the click does what the word said', t.ran.join(), 'hide');
+  check('click during menu display honors the action captured at open', t.ran.join(), 'hide');
 }
 
 /* And once the popup is gone the item catches up with the window, so that the
@@ -153,7 +153,7 @@ const build = () => {
         t.openMenu(), 'Open WhatsApp');
   t.ran.length = 0;
   t.click();
-  check('and that click opens it rather than hiding it again', t.ran.join(), 'show');
+  check('clicking tray icon after hiding opens window', t.ran.join(), 'show');
 }
 
 /* -------------------------------------------------- about, and the update */
@@ -176,7 +176,7 @@ const build = () => {
   t.tray.handle(ID.SETTINGS, 'clicked');
   t.tray.handle(ID.FONTS, 'clicked');
   check('Settings and Fonts open a window each', t.ran.join(), 'settings,fonts');
-  check('and Fonts is on the menu, under Settings',
+  check('Fonts menu item is present with correct label',
         t.labelOf(ID.FONTS), 'Fonts…');
 }
 
@@ -195,7 +195,7 @@ const build = () => {
         t.labelOf(ID.ABOUT), 'About WhatsApp');
 
   t.update.found = { current: '1.6.6', error: 'no connection to the internet' };
-  check('and neither is a check that could not be made',
+  check('failed update check does not alter About menu label',
         t.labelOf(ID.ABOUT), 'About WhatsApp');
 
   t.update.found = { current: '1.6.6', latest: '1.6.7', newer: true };
@@ -221,7 +221,7 @@ const build = () => {
   const before = ids();
   t.window.moveTo(false);
   check('the menu keeps its numbers when its word changes', ids(), before);
-  check('and the item a host clicks is the one that was drawn', before.split(',')[1], '1');
+  check('toggle menu item retains ID 1 across state changes', before.split(',')[1], '1');
 
   /* The items added in 1.6.7 were given numbers after the ones that were
      already out, and the ones already out did not move. A host is entitled to
@@ -238,7 +238,7 @@ const build = () => {
      this test is here to keep. */
   check('every item still has the number it was given',
         before, '0,1,2,3,12,10,11,8,9');
-  check('and a retired number is not handed to something else',
+  check('retired theme item IDs 4 through 7 remain unassigned',
         [4, 5, 6, 7].map(id => t.tray.itemProps(id, []).length).join(), '0,0,0,0');
 
   /* And the wording of one of them moving is no more a layout change than the

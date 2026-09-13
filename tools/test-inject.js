@@ -400,7 +400,7 @@ const check = (label, got, want) => {
 
   advance(3000);                                   // the list has settled
   await scan();
-  check('and it is still not news a moment later', await describe(), '');
+  check('unread chat seeded before start remains unannounced after list settles', await describe(), '');
 
   /* A message to a chat that is not on screen, and then the extra ask that used
      to announce it a second time. The app asks more often than messages land --
@@ -412,12 +412,12 @@ const check = (label, got, want) => {
         await describe(), 'Pdf & Assignments | Mega: تمام');
   check('the next ask, with nothing queued, stays quiet', await describe(), '');
   await scan();
-  check('and stays quiet after another pass of the watcher', await describe(), '');
+  check('watcher pass without new arrivals remains silent', await describe(), '');
 
   update(mega, { preview: 'ز', when: clock() });
   await scan();
   check('a message in the chat on screen is left to WhatsApp', await describe(), 'open');
-  check('reading one chat does not re-announce the other', await describe(), '');
+  check('opening focused chat does not trigger announcement for other chats', await describe(), '');
 
   /* Typing. A direct chat leaves "typing..." in the preview, a group leaves
      "Mega is typing..." -- and the second shape used to read as a message. */
@@ -425,7 +425,7 @@ const check = (label, got, want) => {
   update(pdf, { preview: 'Mega is typing...', sender: null });
   await scan();
   check('a group typing raises no arrival at all', pings - before, 0);
-  check('and nothing is described for it', await describe(), '');
+  check('typing state in group chat produces empty describe output', await describe(), '');
   update(pdf, { preview: 'تمام', sender: 'Mega' });   // typing stops, message unchanged
   await scan();
   check('typing stopping is not an arrival either', await describe(), '');
@@ -448,7 +448,7 @@ const check = (label, got, want) => {
   await scan();
   check('a row that appears at the top unread is still guessed at',
         await describe(), 'Communication Engineer 4 | Mo farhat: تم');
-  check('but only once', await describe(), '');
+  check('deep unrendered unread row guess is only announced once', await describe(), '');
 
   /* A row that is still unread cannot be the conversation on screen: WhatsApp
      clears that pill the moment it draws a chat in a focused window. Ten
@@ -513,7 +513,7 @@ const check = (label, got, want) => {
   openReports = [];
   setFocus(false);
   setFocus(true);
-  check('and the window coming back says it again', openReports.pop(), 'EL Joo');
+  check('window regaining focus re-reports open chat', openReports.pop(), 'EL Joo');
 
   closeConversation();
   await scan();
@@ -549,14 +549,14 @@ const check = (label, got, want) => {
   update(joo, { badge: 0 });
   observers.forEach(o => o.cb());
   await sleep(300);
-  check('and is still held for a moment, in case the pill was merely redrawn',
+  check('read chat transition is held for grace period against pill redraw',
         (reported() || ['EL Joo']).includes('EL Joo'), true);
 
   unreadReports = [];
   await sleep(2600);                     // nothing whatever touches the list in here
   check('then dropped on the watcher\'s own timer, with nothing else moving the list',
         reported(), unreadReports.length ? reported() : null);
-  check('and the report that did it names the other unread chats and not this one',
+  check('debounced unread report excludes the chat whose unread pill was cleared',
         !!reported() && !reported().includes('EL Joo'), true);
 
   await describe();                      // drain what the badge changes queued
@@ -612,7 +612,7 @@ const check = (label, got, want) => {
                      preview: 'You reacted \u{1F44D} to: "\u062a\u0645\u0627\u0645"',
                      when: clock() });
   await scan();
-  check('and the user reacting to somebody else is not',
+  check('user outgoing reaction to another user does not trigger notification',
         await describe(), '');
   reacting.remove();
 
@@ -629,7 +629,7 @@ const check = (label, got, want) => {
   advance(3 * 60 * 1000);
   update(pdf, { badge: 3, preview: 'تمام يا معلم', sender: 'Salah', when: clock() });
   await scan();
-  check('and the same words a quarter of an hour later are a message again',
+  check('same message content received after time gap is treated as fresh arrival',
         await describe(), 'Pdf & Assignments | Salah: تمام يا معلم');
 
   /* ------------------------------------------------------- muting and mentions */
@@ -666,7 +666,7 @@ const check = (label, got, want) => {
   update(pdf, { badge: 5, preview: 'the sticker you sent is great', sender: 'Mega',
                 when: clock() });
   await scan();
-  check('and a message that merely mentions one is left as it was written',
+  check('message text containing photo word is announced with original message body',
         await describe(), 'Pdf & Assignments | Mega: the sticker you sent is great');
 
 
@@ -725,7 +725,7 @@ const check = (label, got, want) => {
   await scan();
   const counted = countReports.pop();
   check('the badge counts messages, not chats', counted && counted.messages, 3);
-  check('and leaves a muted chat out of it', counted && counted.chats, 1);
+  check('unread badge calculation excludes muted chats', counted && counted.chats, 1);
 
   /* A mention in a muted group is not muted, and does count. */
   update(quiet, { badge: 8, preview: 'يا عبدالله', when: clock(), mention: true });
@@ -761,7 +761,7 @@ const check = (label, got, want) => {
   played = [];
   fire('pointerdown', { target: sendButton });
   new sandbox.HTMLMediaElement('').play();
-  check('and muted for a click on send, which is how a picture goes', played.join(), '');
+  check('outgoing message tone is muted when picture send button is clicked', played.join(), '');
 
   played = [];
   fire('keydown', { key: 'Enter', target: composer });
@@ -778,7 +778,7 @@ const check = (label, got, want) => {
   fire('keydown', { key: 'Enter', target: composer });
   advance(SEND_TONE_GAP);
   new sandbox.HTMLMediaElement('').play();
-  check('and somebody else writing two seconds later still rings', played.join(), 'audio');
+  check('incoming message tone still rings after user sent message', played.join(), 'audio');
 
   /* ---------------------------------------------- the tone of a message in */
 
@@ -807,7 +807,7 @@ const check = (label, got, want) => {
   played = [];
   push('play-tone', null);
   await sleep(0);
-  check("and the client's own tone plays straight through the muting",
+  check("client custom notification sound plays while WhatsApp default tone is muted",
         played.join(), 'webaudio');
 
   played = [];
@@ -831,11 +831,11 @@ const check = (label, got, want) => {
   note.pause();
   check('pausing a voice note takes its resource away and hands it back',
         note.loads, 2);
-  check('and the src is the one it had',
+  check('voice note preserves audio src after pause-reload cycle',
         note.src, 'blob:https://web.whatsapp.com/a-voice-note');
   note.currentTime = 0;                    // what the load algorithm would leave
   note.fire('loadedmetadata');
-  check('and it is left where the user stopped it', note.currentTime, 2.5);
+  check('voice note preserves playback currentTime after pause', note.currentTime, 2.5);
 
   /* A press that lands while the src is on its way back has to wait for it:
      play() on an element with no resource rejects, and the note would be
@@ -849,7 +849,7 @@ const check = (label, got, want) => {
   check('a press inside that window does not reach the element yet', played.join(), '');
   raced.fire('loadedmetadata');
   await pressed;
-  check('and lands once the src is back', played.join(), 'audio');
+  check('audio play request succeeds once src is restored', played.join(), 'audio');
 
   /* The end of a note is Chromium's own business -- it drops that player by
      itself. Recycling there is worse than a reload for nothing: WhatsApp
@@ -860,7 +860,7 @@ const check = (label, got, want) => {
   finished.play();
   finished.playOut();
   check('a note that played out is left alone', finished.loads, 0);
-  check('and it still has the src WhatsApp will rewind',
+  check('finished voice note retains original audio src',
         finished.src, 'blob:https://web.whatsapp.com/finished');
 
   /* The same moment, arriving a hair short of the duration. */
@@ -869,19 +869,19 @@ const check = (label, got, want) => {
   nearly.play();
   nearly.currentTime = 8.38;
   nearly.pause();
-  check('and so is one stopped inside the last of it', nearly.loads, 0);
+  check('voice note stopped near end avoids resource reloading', nearly.loads, 0);
 
   /* Everything that is not a recording somebody chose to listen to. */
   const tone = new sandbox.HTMLMediaElement('', 'https://static.whatsapp.net/l-ut9G1w4eu.ogg');
   tone.play();
   tone.pause();
-  check("and so is a tone of WhatsApp's own", tone.loads, 0);
+  check("WhatsApp native tone audio element is exempt from pause-reload cycle", tone.loads, 0);
 
   const ring = new sandbox.HTMLMediaElement('', 'blob:https://web.whatsapp.com/ringing');
   ring.loop = true;
   ring.play();
   ring.pause();
-  check('and so is a call ringing', ring.loads, 0);
+  check('incoming call audio element is exempt from pause-reload cycle', ring.loads, 0);
 
   /* ------------------------------------------ opening a chat from a banner */
 
@@ -897,7 +897,7 @@ const check = (label, got, want) => {
      is inside the row, and an event that starts at the row travels away from it.
      That was measured on the live page, and it is the whole reason this presses
      what it presses. */
-  check('and it is aimed inside that row and not at the row itself',
+  check('banner click dispatches mouse event to clickable child inside target row',
         dispatched.length ? dispatched[0].on.getAttribute('title') : '',
         'EL Joo');
 
@@ -931,7 +931,7 @@ const check = (label, got, want) => {
   const answer = await sandbox.window.__waDescribeUnread();
   const parts = answer.split(US);
   check('the banner names the chat', parts[0], 'Same Name');
-  check('and carries a token for the row it was made from', !!parts[4], true);
+  check('banner payload contains unique token identifying target row', !!parts[4], true);
 
   dispatched = [];
   push('open-chat-request', { token: parts[4], name: parts[0], preview: parts[2] });
@@ -941,7 +941,7 @@ const check = (label, got, want) => {
   /* And with the row recycled out from under it, the message still finds it. */
   dispatched = [];
   push('open-chat-request', { token: 'gone', name: 'Same Name', preview: 'دى بتاعة التانية' });
-  check('and finds it again by its message when the row has been replaced',
+  check('banner click matches replaced row using preview message content',
         dispatched.length ? dispatched[0].on.parentNode : null, twinB);
 
   twinA.remove(); twinB.remove();
@@ -984,10 +984,10 @@ const check = (label, got, want) => {
 
   root.append(pane);
   await sleep(600);
-  check('and goes up as WhatsApp\'s own dialog once it has', asked.length, 1);
-  check('carrying the code the link came with',
+  check('invite dialog opens as WhatsApp native dialog once chat list renders', asked.length, 1);
+  check('invite dialog receives invite code from link',
         asked.length ? asked[0].element.props.groupCode : null, 'IZ4FM0ZHJRN7hMFsxlQTcx');
-  check('and the source the live page passes for one',
+  check('invite dialog receives correct source parameter from link',
         asked.length ? asked[0].element.props.source : null, 'invite_link');
 
   await sleep(INVITE_SETTLE_MS + 200);
@@ -1002,10 +1002,10 @@ const check = (label, got, want) => {
   await sleep(600);
   check('one that did not arrive is asked for once more', asked.length, 1);
   await sleep(INVITE_SETTLE_MS + 200);
-  check('and it is', asked.length, 2);
+  check('second retry triggers invite prompt request', asked.length, 2);
   await sleep(INVITE_SETTLE_MS + 200);
-  check('once more, and once only', asked.length, 2);
-  check('and the app is asked for WhatsApp\'s own page instead',
+  check('invite prompt retries at most once', asked.length, 2);
+  check('unresolved invite after retry falls back to app web page',
         inviteFallbacks.length ? inviteFallbacks[0].code : null, 'IZ4FM0ZHJRN7hMFsxlQTcx');
 
   push('open-invite', { code: '' });

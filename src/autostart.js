@@ -15,28 +15,21 @@ const USER_AUTOSTART_DIR = path.join(process.env.XDG_CONFIG_HOME || path.join(os
 const USER_DESKTOP_PATH = path.join(USER_AUTOSTART_DIR, `${APP_ID}.desktop`);
 const SYS_DESKTOP_PATH = path.join('/etc', 'xdg', 'autostart', `${APP_ID}.desktop`);
 
+const isDesktopEntryActive = filePath => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    return !(/Hidden\s*=\s*true/i.test(content) || /X-GNOME-Autostart-enabled\s*=\s*false/i.test(content));
+  } catch (err) {
+    return false;
+  }
+};
+
 const isEnabled = () => {
   if (fs.existsSync(USER_DESKTOP_PATH)) {
-    try {
-      const content = fs.readFileSync(USER_DESKTOP_PATH, 'utf8');
-      if (/Hidden\s*=\s*true/i.test(content) || /X-GNOME-Autostart-enabled\s*=\s*false/i.test(content)) {
-        return false;
-      }
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return isDesktopEntryActive(USER_DESKTOP_PATH);
   }
   if (fs.existsSync(SYS_DESKTOP_PATH)) {
-    try {
-      const content = fs.readFileSync(SYS_DESKTOP_PATH, 'utf8');
-      if (/Hidden\s*=\s*true/i.test(content) || /X-GNOME-Autostart-enabled\s*=\s*false/i.test(content)) {
-        return false;
-      }
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return isDesktopEntryActive(SYS_DESKTOP_PATH);
   }
   return false;
 };
@@ -44,7 +37,9 @@ const isEnabled = () => {
 const setEnabled = enable => {
   try {
     fs.mkdirSync(USER_AUTOSTART_DIR, { recursive: true, mode: 0o700 });
-  } catch (e) {}
+  } catch (err) {
+    console.warn('autostart: could not create directory %s: %s', USER_AUTOSTART_DIR, err.message);
+  }
 
   if (enable) {
     const desktopEntry = [
@@ -64,8 +59,8 @@ const setEnabled = enable => {
     try {
       fs.writeFileSync(USER_DESKTOP_PATH, desktopEntry, { mode: 0o644 });
       return true;
-    } catch (e) {
-      console.warn('autostart: could not write %s: %s', USER_DESKTOP_PATH, e.message);
+    } catch (err) {
+      console.warn('autostart: could not write %s: %s', USER_DESKTOP_PATH, err.message);
       return false;
     }
   } else {
@@ -81,8 +76,8 @@ const setEnabled = enable => {
       try {
         fs.writeFileSync(USER_DESKTOP_PATH, maskEntry, { mode: 0o644 });
         return true;
-      } catch (e) {
-        console.warn('autostart: could not mask %s: %s', USER_DESKTOP_PATH, e.message);
+      } catch (err) {
+        console.warn('autostart: could not mask %s: %s', USER_DESKTOP_PATH, err.message);
         return false;
       }
     } else {
@@ -91,7 +86,8 @@ const setEnabled = enable => {
           fs.unlinkSync(USER_DESKTOP_PATH);
         }
         return true;
-      } catch (e) {
+      } catch (err) {
+        console.warn('autostart: could not remove %s: %s', USER_DESKTOP_PATH, err.message);
         return false;
       }
     }

@@ -20,6 +20,9 @@ contextBridge.exposeInMainWorld('api', {
   switchAccount: id => ipcRenderer.invoke('accounts:switch', id),
   addAccount: data => ipcRenderer.invoke('accounts:add', data),
   removeAccount: id => ipcRenderer.invoke('accounts:remove', id),
+  setPasscode: pin => ipcRenderer.invoke('lock:set-passcode', pin),
+  removePasscode: currentPin => ipcRenderer.invoke('lock:remove-passcode', currentPin),
+  getLockStatus: () => ipcRenderer.invoke('lock:get-status'),
   onSettingsChanged: callback => {
     ipcRenderer.on('settings:changed', (_, data) => callback(data));
   },

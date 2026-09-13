@@ -20,6 +20,19 @@
     </svg>
   </button>
 
+  <button class="action-btn" id="privacyBtn" title="درع الخصوصية / Privacy Shield (Ctrl+Alt+P)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+  </button>
+
+  <button class="action-btn" id="lockBtn" title="قفل التطبيق / Lock App (Ctrl+Alt+L)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  </button>
+
   <!-- Toggle / Collapse button at the bottom -->
   <button class="toggle-btn" id="toggleSidebarBtn" title="طي الشريط الجانبي (Ctrl+Alt+S)">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -32,6 +45,8 @@
   <script>
     const accountsList = document.getElementById('accountsList');
     const addAccountBtn = document.getElementById('addAccountBtn');
+    const privacyBtn = document.getElementById('privacyBtn');
+    const lockBtn = document.getElementById('lockBtn');
     const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
     const pullHandle = document.getElementById('pullHandle');
     const tooltip = document.getElementById('tooltip');
@@ -60,6 +75,9 @@
       if (typeof state.collapsed === 'boolean') {
         setCollapsedUI(state.collapsed);
       }
+      if (privacyBtn) {
+        privacyBtn.classList.toggle('active', !!state.privacyActive);
+      }
 
       accountsList.innerHTML = '';
       const accounts = state.accounts || [];
@@ -84,6 +102,14 @@
         badge.className = 'unread-badge' + (acc.unread > 0 ? ' visible' : '');
         badge.textContent = acc.unread > 99 ? '99+' : acc.unread;
         btn.appendChild(badge);
+
+        if (acc.isSleeping) {
+          btn.classList.add('sleeping');
+          const sleepBadge = document.createElement('div');
+          sleepBadge.className = 'sleep-badge';
+          sleepBadge.textContent = '💤';
+          btn.appendChild(sleepBadge);
+        }
 
         btn.addEventListener('click', () => {
           if (window.api && acc.id !== currentState.activeId) {
@@ -135,6 +161,18 @@
     }
 
     addAccountBtn.addEventListener('click', openAddModal);
+
+    if (privacyBtn) {
+      privacyBtn.addEventListener('click', () => {
+        if (window.api && window.api.togglePrivacy) window.api.togglePrivacy();
+      });
+    }
+
+    if (lockBtn) {
+      lockBtn.addEventListener('click', () => {
+        if (window.api && window.api.lockApp) window.api.lockApp();
+      });
+    }
 
     toggleSidebarBtn.addEventListener('click', () => {
       if (window.api && window.api.setCollapsed) {

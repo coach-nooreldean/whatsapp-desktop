@@ -30,6 +30,36 @@
   --badge-red: #ea4335;
 }
 
+:root[data-theme="oled"] {
+  --bg-sidebar: #000000;
+  --bg-sidebar-hover: #0d0d0d;
+  --sidebar-border: #1a1a1a;
+  --text-primary: #f0f0f0;
+  --text-secondary: #888888;
+  --accent: #00a884;
+  --badge-red: #ea4335;
+}
+
+:root[data-theme="nord"] {
+  --bg-sidebar: #2e3440;
+  --bg-sidebar-hover: #3b4252;
+  --sidebar-border: #434c5e;
+  --text-primary: #eceff4;
+  --text-secondary: #d8dee9;
+  --accent: #88c0d0;
+  --badge-red: #bf616a;
+}
+
+:root[data-theme="catppuccin"] {
+  --bg-sidebar: #1e1e2e;
+  --bg-sidebar-hover: #181825;
+  --sidebar-border: #313244;
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --accent: #89b4fa;
+  --badge-red: #f38ba8;
+}
+
 body {
   width: 100%;
   height: 100vh;
@@ -288,4 +318,57 @@ body.collapsed:hover .pull-handle {
 .tooltip.show {
   opacity: 1;
   transform: translateX(0);
+}
+
+/* Sleeping account indicator */
+.account-btn.sleeping {
+  opacity: 0.65;
+  filter: grayscale(0.2);
+}
+
+.sleep-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  background-color: #3b4252;
+  color: #d8dee9;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--bg-sidebar);
+}
+
+/* Sidebar action button (Privacy Shield, App Lock) */
+.action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: var(--bg-sidebar-hover);
+  color: var(--text-primary);
+}
+
+.action-btn.active {
+  background-color: rgba(0, 168, 132, 0.18);
+  color: var(--accent);
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
 }

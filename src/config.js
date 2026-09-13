@@ -85,6 +85,20 @@ const DEFAULTS = {
      installed -- the package manager does that -- and nothing pops up. Turn it
      off and nothing asks by itself; About's own Check button still does. */
   'updates.check': true,
+  /* Privacy Shield & Stealth Mode: blur chats, media, and contacts */
+  'privacy.stealth': false,
+  'privacy.auto-blur': true,
+  'privacy.hover-reveal': true,
+  'privacy.blur-contacts': false,
+  /* App Lock & Passcode */
+  'lock.enabled': false,
+  'lock.timeout': 15,
+  /* Linux Desktop MPRIS2 Media Player */
+  'mpris.enabled': true,
+  /* Multi-account memory optimization (minutes of inactivity before sleeping background account) */
+  'accounts.hibernation-minutes': 30,
+  /* Dynamic Hyprland / system accent color adoption */
+  'view.hyprland-accent': true,
 };
 
 /* A deliberately small INI reader: sections, key = value, # and ; comments.

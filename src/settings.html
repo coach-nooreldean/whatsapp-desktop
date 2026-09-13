@@ -52,6 +52,34 @@
             </svg>
             <span>Light</span>
           </button>
+          <button class="theme-option" data-theme="oled" id="themeOled">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>OLED</span>
+          </button>
+          <button class="theme-option" data-theme="nord" id="themeNord">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3L3 19h18L12 3zm0 4.5l5 9H7l5-9z"/>
+            </svg>
+            <span>Nord</span>
+          </button>
+          <button class="theme-option" data-theme="catppuccin" id="themeCatppuccin">
+            <svg viewBox="0 0 24 24">
+              <circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <span>Catppuccin</span>
+          </button>
+        </div>
+        <div class="row" style="border-top: 1px solid var(--border-color); padding: 12px 16px;">
+          <div class="row-info">
+            <div class="row-title">Adopt Hyprland / System Colors</div>
+            <div class="row-desc">Harmonize accents with Pywal, Wallust, or Hyprland theme</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="hyprlandAccentToggle" checked>
+            <span class="slider"></span>
+          </label>
         </div>
       </div>
     </div>
@@ -155,6 +183,94 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Privacy Shield & Stealth -->
+    <div class="section">
+      <div class="section-title">Privacy Shield & Stealth / درع الخصوصية</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Stealth Mode (Ctrl+Alt+P)</div>
+            <div class="row-desc">Blur messages, media, and contacts to prevent shoulder surfing</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="privacyStealthToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Auto-Blur on Focus Loss</div>
+            <div class="row-desc">Automatically blur when WhatsApp is in the background or loses focus</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="privacyAutoBlurToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Hover to Reveal</div>
+            <div class="row-desc">Temporarily unblur individual message bubbles and images when hovering</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="privacyHoverRevealToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Blur Contact Names</div>
+            <div class="row-desc">Also blur chat list names and phone numbers</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="privacyBlurContactsToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Lock & Passcode -->
+    <div class="section">
+      <div class="section-title">App Lock / قفل التطبيق (Ctrl+Alt+L)</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Passcode Protection</div>
+            <div class="row-desc" id="lockStatusDesc">Protect WhatsApp with a PIN or passcode</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="lockEnabledToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row" id="lockTimeoutRow">
+          <div class="row-info">
+            <div class="row-title">Auto-Lock Inactivity Timeout</div>
+            <div class="row-desc">Lock automatically after minutes of inactivity</div>
+          </div>
+          <select id="lockTimeoutSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
+            <option value="5">5 minutes</option>
+            <option value="15" selected>15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="0">Disabled (manual only)</option>
+          </select>
+        </div>
+        <div class="row" id="lockPasscodeSetupRow" style="flex-direction: column; align-items: stretch; gap: 8px;">
+          <div style="font-size: 13px; font-weight: 500;">Set or Change Passcode:</div>
+          <div style="display: flex; gap: 8px;">
+            <input type="password" id="settingsPinInput" placeholder="New PIN / Passcode (min 4 chars)" style="flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
+            <button id="savePinBtn" class="stepper-btn" style="width: auto; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">Save PIN</button>
+            <button id="removePinBtn" class="stepper-btn" style="width: auto; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13px; cursor: pointer; display: none;">Remove</button>
+          </div>
+          <div id="pinFeedback" style="font-size: 12px; min-height: 16px;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Accounts Section -->
     <div class="section">
       <div class="section-title">Accounts / تعدد الحسابات</div>
@@ -179,6 +295,19 @@
             <button id="settingsSaveAddBtn" style="padding: 6px 14px; background: #00a884; border: none; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">إضافة / Add</button>
           </div>
         </div>
+
+        <div class="row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <div class="row-info">
+            <div class="row-title">Background Account Hibernation</div>
+            <div class="row-desc">Put inactive background accounts into low-power sleep mode to save memory</div>
+          </div>
+          <select id="hibernationSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
+            <option value="15">15 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="0">Disabled</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -193,8 +322,12 @@
       system: document.getElementById('themeSystem'),
       dark: document.getElementById('themeDark'),
       light: document.getElementById('themeLight'),
+      oled: document.getElementById('themeOled'),
+      nord: document.getElementById('themeNord'),
+      catppuccin: document.getElementById('themeCatppuccin'),
     };
 
+    const hyprlandAccentToggle = document.getElementById('hyprlandAccentToggle');
     const autostartToggle = document.getElementById('autostartToggle');
     const closeToTrayToggle = document.getElementById('closeToTrayToggle');
     const minimizeToTrayToggle = document.getElementById('minimizeToTrayToggle');
@@ -206,15 +339,37 @@
     const zoomVal = document.getElementById('zoomVal');
     const closeBtn = document.getElementById('closeBtn');
 
+    // Privacy & Stealth
+    const privacyStealthToggle = document.getElementById('privacyStealthToggle');
+    const privacyAutoBlurToggle = document.getElementById('privacyAutoBlurToggle');
+    const privacyHoverRevealToggle = document.getElementById('privacyHoverRevealToggle');
+    const privacyBlurContactsToggle = document.getElementById('privacyBlurContactsToggle');
+
+    // App Lock
+    const lockEnabledToggle = document.getElementById('lockEnabledToggle');
+    const lockTimeoutSelect = document.getElementById('lockTimeoutSelect');
+    const settingsPinInput = document.getElementById('settingsPinInput');
+    const savePinBtn = document.getElementById('savePinBtn');
+    const removePinBtn = document.getElementById('removePinBtn');
+    const pinFeedback = document.getElementById('pinFeedback');
+    const lockStatusDesc = document.getElementById('lockStatusDesc');
+    const lockTimeoutRow = document.getElementById('lockTimeoutRow');
+    const lockPasscodeSetupRow = document.getElementById('lockPasscodeSetupRow');
+
+    // Hibernation
+    const hibernationSelect = document.getElementById('hibernationSelect');
+
     let currentZoom = 1.0;
 
     function applyThemeToUI(theme) {
       document.documentElement.setAttribute('data-theme', theme || 'system');
       Object.keys(themeButtons).forEach(t => {
-        if (t === (theme || 'system')) {
-          themeButtons[t].classList.add('active');
-        } else {
-          themeButtons[t].classList.remove('active');
+        if (themeButtons[t]) {
+          if (t === (theme || 'system')) {
+            themeButtons[t].classList.add('active');
+          } else {
+            themeButtons[t].classList.remove('active');
+          }
         }
       });
     }
@@ -231,6 +386,7 @@
           document.documentElement.style.setProperty(
             '--font-family', '"' + String(data.font).replace(/"/g, '') + '", system-ui, sans-serif');
         }
+        if (hyprlandAccentToggle) hyprlandAccentToggle.checked = data.hyprlandAccent !== false;
         autostartToggle.checked = !!data.autostart;
         closeToTrayToggle.checked = !!data.closeToTray;
         minimizeToTrayToggle.checked = !!data.minimizeToTray;
@@ -239,6 +395,32 @@
         outgoingSoundToggle.checked = !!data.outgoingSound;
         currentZoom = data.zoom || 1.0;
         zoomVal.textContent = Math.round(currentZoom * 100) + '%';
+
+        // Privacy
+        if (privacyStealthToggle) privacyStealthToggle.checked = !!data.privacyStealth;
+        if (privacyAutoBlurToggle) privacyAutoBlurToggle.checked = data.privacyAutoBlur !== false;
+        if (privacyHoverRevealToggle) privacyHoverRevealToggle.checked = data.privacyHoverReveal !== false;
+        if (privacyBlurContactsToggle) privacyBlurContactsToggle.checked = !!data.privacyBlurContacts;
+
+        // Hibernation
+        if (hibernationSelect) {
+          hibernationSelect.value = String(data.hibernationMinutes != null ? data.hibernationMinutes : 30);
+        }
+
+        // Lock status
+        if (window.api.getLockStatus) {
+          const lockStatus = await window.api.getLockStatus();
+          if (lockEnabledToggle) lockEnabledToggle.checked = !!lockStatus.enabled;
+          if (lockTimeoutSelect) lockTimeoutSelect.value = String(lockStatus.timeout != null ? lockStatus.timeout : 15);
+          if (lockStatusDesc) {
+            lockStatusDesc.textContent = lockStatus.hasPasscode
+              ? 'Passcode is configured and active'
+              : 'Protect WhatsApp with a PIN or passcode';
+          }
+          if (removePinBtn) {
+            removePinBtn.style.display = lockStatus.hasPasscode ? 'inline-block' : 'none';
+          }
+        }
       } catch (e) {
         console.error('Failed to load settings:', e);
       }
@@ -277,6 +459,92 @@
     outgoingSoundToggle.addEventListener('change', async () => {
       if (window.api) await window.api.setSetting('notifications.outgoing-sound', outgoingSoundToggle.checked);
     });
+
+    if (hyprlandAccentToggle) {
+      hyprlandAccentToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('view.hyprland-accent', hyprlandAccentToggle.checked);
+      });
+    }
+
+    // Privacy Shield Handlers
+    if (privacyStealthToggle) {
+      privacyStealthToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('privacy.stealth', privacyStealthToggle.checked);
+      });
+    }
+    if (privacyAutoBlurToggle) {
+      privacyAutoBlurToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('privacy.auto-blur', privacyAutoBlurToggle.checked);
+      });
+    }
+    if (privacyHoverRevealToggle) {
+      privacyHoverRevealToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('privacy.hover-reveal', privacyHoverRevealToggle.checked);
+      });
+    }
+    if (privacyBlurContactsToggle) {
+      privacyBlurContactsToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('privacy.blur-contacts', privacyBlurContactsToggle.checked);
+      });
+    }
+
+    // App Lock Handlers
+    if (lockEnabledToggle) {
+      lockEnabledToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('lock.enabled', lockEnabledToggle.checked);
+      });
+    }
+    if (lockTimeoutSelect) {
+      lockTimeoutSelect.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('lock.timeout', parseInt(lockTimeoutSelect.value, 10));
+      });
+    }
+    if (savePinBtn) {
+      savePinBtn.addEventListener('click', async () => {
+        const pin = settingsPinInput.value;
+        if (!pin || pin.trim().length < 4) {
+          pinFeedback.style.color = '#ef4444';
+          pinFeedback.textContent = 'Passcode must be at least 4 characters';
+          return;
+        }
+        try {
+          if (window.api && window.api.setPasscode) {
+            await window.api.setPasscode(pin);
+            pinFeedback.style.color = '#00a884';
+            pinFeedback.textContent = 'Passcode saved successfully!';
+            settingsPinInput.value = '';
+            loadSettings();
+          }
+        } catch (e) {
+          pinFeedback.style.color = '#ef4444';
+          pinFeedback.textContent = e.message || 'Failed to save passcode';
+        }
+      });
+    }
+    if (removePinBtn) {
+      removePinBtn.addEventListener('click', async () => {
+        const pin = prompt('Enter your current passcode to remove protection:');
+        if (!pin) return;
+        try {
+          if (window.api && window.api.removePasscode) {
+            await window.api.removePasscode(pin);
+            pinFeedback.style.color = '#00a884';
+            pinFeedback.textContent = 'Passcode removed';
+            loadSettings();
+          }
+        } catch (e) {
+          pinFeedback.style.color = '#ef4444';
+          pinFeedback.textContent = e.message || 'Failed to remove passcode';
+        }
+      });
+    }
+
+    // Hibernation Handler
+    if (hibernationSelect) {
+      hibernationSelect.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('accounts.hibernation-minutes', parseInt(hibernationSelect.value, 10));
+      });
+    }
 
     // Zoom Handlers
     zoomInBtn.addEventListener('click', async () => {

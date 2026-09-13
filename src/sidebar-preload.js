@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld('api', {
   showContextMenu: id => ipcRenderer.send('sidebar:context-menu', id),
   openAddModal: () => ipcRenderer.send('sidebar:open-add-dialog'),
   setCollapsed: collapsed => ipcRenderer.send('sidebar:set-collapsed', collapsed),
+  togglePrivacy: () => ipcRenderer.send('sidebar:toggle-privacy'),
+  lockApp: () => ipcRenderer.send('sidebar:lock-app'),
   onStateChange: callback => {
     ipcRenderer.on('sidebar:state-changed', (event, state) => callback(state));
   },

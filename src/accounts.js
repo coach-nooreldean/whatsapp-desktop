@@ -36,6 +36,8 @@ const DEFAULT_ACCOUNT = {
   partition: 'default',
   isDefault: true,
   unread: 0,
+  lastActive: Date.now(),
+  isSleeping: false,
 };
 
 class AccountsManager {
@@ -58,11 +60,13 @@ class AccountsManager {
             partition: acc.id === 'default' ? 'default' : String(acc.partition || `persist:account_${acc.id}`),
             isDefault: acc.id === 'default',
             unread: 0,
+            lastActive: Date.now(),
+            isSleeping: false,
           }));
 
           // Ensure default account always exists
           if (!this.accounts.some(a => a.isDefault)) {
-            this.accounts.unshift({ ...DEFAULT_ACCOUNT });
+            this.accounts.unshift({ ...DEFAULT_ACCOUNT, lastActive: Date.now(), isSleeping: false });
           }
 
           this.activeId = parsed.activeId && this.accounts.some(a => a.id === parsed.activeId)
@@ -138,6 +142,8 @@ class AccountsManager {
       partition: `persist:account_${id}`,
       isDefault: false,
       unread: 0,
+      lastActive: Date.now(),
+      isSleeping: false,
     };
     this.accounts.push(newAccount);
     this.save();
@@ -188,6 +194,45 @@ class AccountsManager {
 
   getTotalUnread() {
     return this.accounts.reduce((sum, acc) => sum + (acc.unread || 0), 0);
+  }
+
+  touchAccount(id) {
+    const acc = this.accounts.find(a => a.id === id);
+    if (acc) {
+      acc.lastActive = Date.now();
+      acc.isSleeping = false;
+    }
+  }
+
+  setSleeping(id, sleeping) {
+    const acc = this.accounts.find(a => a.id === id);
+    if (acc) {
+      acc.isSleeping = !!sleeping;
+    }
+  }
+
+  wakeAccount(id) {
+    this.touchAccount(id);
+  }
+
+  checkInactivity(timeoutMinutes) {
+    if (!timeoutMinutes || timeoutMinutes <= 0) return [];
+    const thresholdMs = timeoutMinutes * 60 * 1000;
+    const now = Date.now();
+    const slept = [];
+
+    for (const acc of this.accounts) {
+      // Never sleep the currently active account
+      if (acc.id === this.activeId) continue;
+      if (acc.isSleeping) continue;
+
+      const idle = now - (acc.lastActive || now);
+      if (idle >= thresholdMs) {
+        acc.isSleeping = true;
+        slept.push(acc.id);
+      }
+    }
+    return slept;
   }
 }
 

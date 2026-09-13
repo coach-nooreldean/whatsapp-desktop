@@ -29,6 +29,12 @@ const fonts = require('./fonts.js');
 const autostart = require('./autostart.js');
 const links = require('./links.js');
 const updates = require('./update.js');
+const { PrivacyManager, PRIVACY_CSS } = require('./privacy.js');
+const { LockManager } = require('./lock.js');
+const { MprisService } = require('./mpris.js');
+const { THEMES, detectHyprlandColors, getWebThemeCss } = require('./themes.js');
+const { handleShortcut } = require('./core/shortcuts.js');
+
 /* Version, licence and author, read from the one file that already says them. */
 const manifest = require('../package.json');
 
@@ -62,11 +68,16 @@ const ARRIVAL_SETTLE_MS = 4000;
 
 const hidden = process.argv.includes('--hidden');
 const config = new Config();
+const privacyMgr = new PrivacyManager(config);
+const lockMgr = new LockManager(config);
 const accountsMgr = new AccountsManager();
 const accountViews = new Map(); // id -> { view, account, cssKeys, loadedAt }
 let sidebarView = null;
 let activeAccountId = accountsMgr.getActiveId();
 let sidebarCollapsed = config.get('view.sidebar-collapsed') === true;
+let mprisService = null;
+let hyprlandColors = null;
+let lockWin = null;
 
 if (process.argv.includes('--version') || process.argv.includes('-v')) {
   const pkg = require('../package.json');
@@ -345,10 +356,71 @@ const notifySidebarState = () => {
       activeId: activeAccountId,
       theme: config.get('view.theme') || 'system',
       collapsed: sidebarCollapsed,
+      privacyActive: privacyMgr.isBlurred(),
     });
     sidebarView.webContents.send('sidebar:collapsed-changed', sidebarCollapsed);
   }
 };
+
+function applyPrivacyState() {
+  const script = privacyMgr.getInjectScript();
+  for (const [, item] of accountViews) {
+    if (item.view && !item.view.webContents.isDestroyed()) {
+      item.view.webContents.executeJavaScript(script).catch(() => {});
+    }
+  }
+  notifySidebarState();
+}
+
+function togglePrivacy() {
+  privacyMgr.toggleStealth();
+  applyPrivacyState();
+}
+
+function showLockWindow() {
+  if (lockWin && !lockWin.isDestroyed()) {
+    lockWin.focus();
+    return;
+  }
+  if (!win || win.isDestroyed()) return;
+  const bounds = win.getBounds();
+  lockWin = new BrowserWindow({
+    parent: win,
+    modal: true,
+    width: bounds.width,
+    height: bounds.height,
+    x: bounds.x,
+    y: bounds.y,
+    frame: false,
+    resizable: false,
+    movable: false,
+    alwaysOnTop: true,
+    backgroundColor: '#111b21',
+    webPreferences: {
+      preload: path.join(__dirname, 'lock-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  lockWin.loadFile(path.join(__dirname, 'lock.html'));
+  lockWin.on('closed', () => {
+    lockWin = null;
+  });
+}
+
+function hideLockWindow() {
+  if (lockWin && !lockWin.isDestroyed()) {
+    lockWin.destroy();
+    lockWin = null;
+  }
+}
+
+function lockApp() {
+  if (!lockMgr.isEnabled()) return;
+  lockMgr.lock();
+  showLockWindow();
+}
+
 
 const updateLayout = () => {
   if (!win || win.isDestroyed()) return;
@@ -392,6 +464,7 @@ const switchToAccount = id => {
   if (!accountsMgr.getAccount(id)) return;
   activeAccountId = id;
   accountsMgr.setActiveId(id);
+  accountsMgr.wakeAccount(id);
   updateLayout();
   pushFocus();
   notifySidebarState();
@@ -407,6 +480,9 @@ const pushFocus = () => {
   if (!win || win.isDestroyed()) return;
   const onScreen = remapping || (win.isVisible() && !win.isMinimized());
   const active = onScreen && win.isFocused();
+  privacyMgr.setWindowFocus(active);
+  applyPrivacyState();
+  if (active) lockMgr.recordActivity();
   for (const [id, item] of accountViews) {
     if (item.view && !item.view.webContents.isDestroyed()) {
       const isThisActive = active && (id === activeAccountId);
@@ -792,16 +868,22 @@ const toggleWindow = () => {
 const setTheme = theme => {
   config.set('view.theme', theme);
   config.save();
-  if (theme === 'dark') {
-    nativeTheme.themeSource = 'dark';
-  } else if (theme === 'light') {
+  if (theme === 'light') {
     nativeTheme.themeSource = 'light';
-  } else {
+  } else if (theme === 'system') {
     nativeTheme.themeSource = desktop.prefersDark() ? 'dark' : 'light';
+  } else {
+    nativeTheme.themeSource = 'dark';
   }
   if (win && !win.isDestroyed()) {
-    win.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#0b141a' : '#ffffff');
+    let bg = nativeTheme.shouldUseDarkColors ? '#0b141a' : '#ffffff';
+    if (theme === 'oled') bg = '#000000';
+    else if (theme === 'nord') bg = '#2e3440';
+    else if (theme === 'catppuccin') bg = '#1e1e2e';
+    win.setBackgroundColor(bg);
   }
+  applyStyle();
+  notifySidebarState();
   if (settingsWin && !settingsWin.isDestroyed()) {
     settingsWin.webContents.send('settings:changed', { theme });
   }
@@ -838,6 +920,17 @@ const changeSetting = (key, value) => {
   }
   if (key === 'view.theme') {
     notifySidebarState();
+    applyStyle();
+  }
+  if (key === 'view.hyprland-accent') {
+    applyStyle();
+  }
+  if (key.startsWith('privacy.')) {
+    privacyMgr.manualStealth = !!config.get('privacy.stealth');
+    privacyMgr.autoBlur = config.get('privacy.auto-blur') !== false;
+    privacyMgr.hoverReveal = config.get('privacy.hover-reveal') !== false;
+    privacyMgr.blurContacts = !!config.get('privacy.blur-contacts');
+    applyPrivacyState();
   }
   if (key === 'view.font-size') applyStyle();
 
@@ -1165,6 +1258,11 @@ const styleSheet = () => {
      off is a rule that has to be written, not one that can be left out. */
   const sheet = style.build(wanted, drawnWith);
   drawnWith = wanted;
+
+  const currentTheme = config.get('view.theme') || 'system';
+  const useHyprland = config.get('view.hyprland-accent') !== false;
+  const webThemeCss = getWebThemeCss(currentTheme, useHyprland ? (hyprlandColors || detectHyprlandColors()) : null);
+
   return [
     sheet,
     /* The faces themselves: one family name, the Latin font, and -- when the
@@ -1172,6 +1270,8 @@ const styleSheet = () => {
        is Arabic. No selector, so no per-element cost, which is the whole
        reason the font lives in @font-face and not in a rule. */
     forcingFont() ? style.fontFaces(pageFontStack, chosenFonts()) : '',
+    webThemeCss,
+    PRIVACY_CSS,
   ].filter(Boolean).join('\n');
 };
 
@@ -1302,6 +1402,7 @@ const createAccountView = (account) => {
       const tone = sound.tone();
       if (tone) view.webContents.send('wa:tone', tone);
     }
+    item.view.webContents.executeJavaScript(privacyMgr.getInjectScript()).catch(() => {});
     pushFocus();
   });
 
@@ -1436,6 +1537,9 @@ const createWindow = () => {
     if (!hidden) showWindow('the client started');
     pushFocus();
     notifySidebarState();
+    if (lockMgr.isEnabled()) {
+      lockApp();
+    }
   });
 };
 
@@ -1714,78 +1818,62 @@ const adoptPopup = popup => {
 
 const onKey = (event, input) => {
   if (input.type !== 'keyDown' || !win) return;
-  const ctrl = input.control || input.meta;
-  const key = input.key.toLowerCase();
 
-  if (ctrl && key === 'q') { event.preventDefault(); quit(); return; }
-  if (ctrl && key === 'w') { event.preventDefault(); win.close(); return; }
-  if (ctrl && key === 'r') {
-    event.preventDefault();
-    const activeWc = getActiveWebContents();
-    if (activeWc) activeWc.reload();
-    return;
-  }
-  if (ctrl && input.shift && key === 'i') {
-    event.preventDefault();
-    const activeWc = getActiveWebContents();
-    if (activeWc) activeWc.toggleDevTools();
-    return;
-  }
-
-  // Ctrl+1 through Ctrl+9 switches accounts
-  if (ctrl && !input.alt && !input.shift && /^[1-9]$/.test(input.key)) {
-    const idx = parseInt(input.key, 10) - 1;
-    const accounts = accountsMgr.getAccounts();
-    if (idx >= 0 && idx < accounts.length) {
-      event.preventDefault();
-      switchToAccount(accounts[idx].id);
-      return;
-    }
-  }
-
-  // Ctrl+Alt+A opens Add Account dialog
-  if (ctrl && input.alt && key === 'a') {
-    event.preventDefault();
-    openAddAccountWindow();
-    return;
-  }
-
-  // Ctrl+Alt+S toggles sidebar collapse/expand
-  if (ctrl && input.alt && key === 's') {
-    event.preventDefault();
-    toggleSidebar();
-    return;
-  }
-
-  const activeWc = getActiveWebContents();
-  const zoom = activeWc ? activeWc.getZoomFactor() : 1;
-  if (ctrl && (key === '+' || key === '=')) {
-    event.preventDefault();
-    const newZoom = Math.min(3, zoom + 0.1);
-    config.set('view.zoom', newZoom);
-    for (const [, item] of accountViews) {
-      if (item.view && !item.view.webContents.isDestroyed()) {
-        item.view.webContents.setZoomFactor(newZoom);
+  const handled = handleShortcut(event, input, {
+    quit: () => quit(),
+    closeWindow: () => win.close(),
+    reload: () => {
+      const activeWc = getActiveWebContents();
+      if (activeWc) activeWc.reload();
+    },
+    toggleDevTools: () => {
+      const activeWc = getActiveWebContents();
+      if (activeWc) activeWc.toggleDevTools();
+    },
+    openSettings: () => openSettings(),
+    switchAccountByIndex: idx => {
+      const accounts = accountsMgr.getAccounts();
+      if (idx >= 0 && idx < accounts.length) {
+        switchToAccount(accounts[idx].id);
       }
-    }
-  } else if (ctrl && key === '-') {
-    event.preventDefault();
-    const newZoom = Math.max(0.3, zoom - 0.1);
-    config.set('view.zoom', newZoom);
-    for (const [, item] of accountViews) {
-      if (item.view && !item.view.webContents.isDestroyed()) {
-        item.view.webContents.setZoomFactor(newZoom);
+    },
+    openAddAccount: () => openAddAccountWindow(),
+    toggleSidebar: () => toggleSidebar(),
+    togglePrivacy: () => togglePrivacy(),
+    lockApp: () => lockApp(),
+    zoomIn: () => {
+      const activeWc = getActiveWebContents();
+      const zoom = activeWc ? activeWc.getZoomFactor() : 1;
+      const newZoom = Math.min(3, zoom + 0.1);
+      config.set('view.zoom', newZoom);
+      for (const [, item] of accountViews) {
+        if (item.view && !item.view.webContents.isDestroyed()) {
+          item.view.webContents.setZoomFactor(newZoom);
+        }
       }
-    }
-  } else if (ctrl && key === '0') {
-    event.preventDefault();
-    config.set('view.zoom', 1);
-    for (const [, item] of accountViews) {
-      if (item.view && !item.view.webContents.isDestroyed()) {
-        item.view.webContents.setZoomFactor(1);
+    },
+    zoomOut: () => {
+      const activeWc = getActiveWebContents();
+      const zoom = activeWc ? activeWc.getZoomFactor() : 1;
+      const newZoom = Math.max(0.3, zoom - 0.1);
+      config.set('view.zoom', newZoom);
+      for (const [, item] of accountViews) {
+        if (item.view && !item.view.webContents.isDestroyed()) {
+          item.view.webContents.setZoomFactor(newZoom);
+        }
       }
-    }
-  }
+    },
+    zoomReset: () => {
+      config.set('view.zoom', 1);
+      for (const [, item] of accountViews) {
+        if (item.view && !item.view.webContents.isDestroyed()) {
+          item.view.webContents.setZoomFactor(1);
+        }
+      }
+    },
+  });
+
+  if (handled) return;
 };
 
 /* A call window answers to fewer keys than the client does, and reload is not
@@ -2123,6 +2211,7 @@ const wireSettingsIpc = () => {
   ipcMain.handle('settings:get', () => {
     return {
       theme: config.get('view.theme') || 'system',
+      hyprlandAccent: config.get('view.hyprland-accent') !== false,
       autostart: autostart.isEnabled(),
       closeToTray: !!config.get('behaviour.close-to-tray'),
       minimizeToTray: !!config.get('behaviour.minimize-to-tray'),
@@ -2131,6 +2220,11 @@ const wireSettingsIpc = () => {
       outgoingSound: !!config.get('notifications.outgoing-sound'),
       zoom: Number(config.get('view.zoom')) || 1.0,
       fontSize: Number(config.get('view.font-size')) || 16,
+      privacyStealth: !!config.get('privacy.stealth'),
+      privacyAutoBlur: config.get('privacy.auto-blur') !== false,
+      privacyHoverReveal: config.get('privacy.hover-reveal') !== false,
+      privacyBlurContacts: !!config.get('privacy.blur-contacts'),
+      hibernationMinutes: config.get('accounts.hibernation-minutes') != null ? config.get('accounts.hibernation-minutes') : 30,
       /* The family the client draws the page in, so this window can be drawn in
          it too rather than in whatever Chromium picks for a plain page. */
       font: uiFont(),
@@ -2173,6 +2267,35 @@ const wireSettingsIpc = () => {
   });
 
   ipcMain.handle('settings:set', (_, key, value) => changeSetting(key, value));
+
+  ipcMain.handle('lock:get-status', () => {
+    return {
+      enabled: lockMgr.isEnabled(),
+      hasPasscode: lockMgr.hasPasscode(),
+      timeout: Number(config.get('lock.timeout')) || 15,
+      isLocked: lockMgr.isLocked,
+    };
+  });
+
+  ipcMain.handle('lock:set-passcode', (_, pin) => {
+    return lockMgr.setPasscode(pin);
+  });
+
+  ipcMain.handle('lock:remove-passcode', (_, pin) => {
+    return lockMgr.removePasscode(pin);
+  });
+
+  ipcMain.handle('lock:unlock', async (_, pin) => {
+    const ok = lockMgr.verify(pin);
+    if (ok) hideLockWindow();
+    return ok;
+  });
+
+  ipcMain.handle('lock:get-theme', () => {
+    const t = config.get('view.theme') || 'system';
+    if (t === 'system') return nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+    return (t === 'light') ? 'light' : 'dark';
+  });
 
   /* Whichever window asked, rather than the settings window by name: the same
      preload is behind both of them, and a Fonts window that closed the settings
@@ -2527,6 +2650,18 @@ const wireWhatsAppPageIpc = () => {
     notifySidebarState();
     updateAggregateUnread();
   });
+
+  ipcMain.on('wa:media-playback', (event, data) => {
+    if (mprisService && data) {
+      mprisService.updateTrack({
+        title: data.title,
+        artist: data.artist || 'WhatsApp',
+        durationSec: data.duration,
+        positionSec: data.position,
+        state: data.state || (data.playing ? 'Playing' : 'Paused'),
+      });
+    }
+  });
 };
 
 const addAccountSession = async (data) => {
@@ -2592,7 +2727,16 @@ const wireAccountsIpc = () => {
       activeId: activeAccountId,
       theme: config.get('view.theme') || 'system',
       collapsed: sidebarCollapsed,
+      privacyActive: privacyMgr.isBlurred(),
     };
+  });
+
+  ipcMain.on('sidebar:toggle-privacy', () => {
+    togglePrivacy();
+  });
+
+  ipcMain.on('sidebar:lock-app', () => {
+    lockApp();
   });
 
   ipcMain.on('sidebar:switch-account', (event, id) => {
@@ -2928,6 +3072,80 @@ app.whenReady().then(() => {
 
   wireIpc();
   createWindow();
+
+  if (config.get('behaviour.mpris-enabled') !== false) {
+    try {
+      mprisService = new MprisService({
+        onRaise: () => showWindow('mpris raise requested'),
+        onQuit: () => quit(),
+        onPlayPause: () => {
+          const activeItem = accountViews.get(activeAccountId);
+          if (activeItem && activeItem.view && !activeItem.view.webContents.isDestroyed()) {
+            activeItem.view.webContents.executeJavaScript(`(() => {
+              const btn = document.querySelector('#main div[role="button"]:has(span[data-icon="audio-play"]), #main div[role="button"]:has(span[data-icon="audio-pause"]), div[data-testid="audio-player"] button');
+              if (btn) btn.click();
+              const audios = document.querySelectorAll('audio');
+              audios.forEach(a => { if (a.paused) a.play().catch(() => {}); else a.pause(); });
+            })()`).catch(() => {});
+          }
+        },
+        onPlay: () => {
+          const activeItem = accountViews.get(activeAccountId);
+          if (activeItem && activeItem.view && !activeItem.view.webContents.isDestroyed()) {
+            activeItem.view.webContents.executeJavaScript(`(() => {
+              const btn = document.querySelector('#main div[role="button"]:has(span[data-icon="audio-play"])');
+              if (btn) btn.click();
+              const audios = document.querySelectorAll('audio');
+              audios.forEach(a => { if (a.paused) a.play().catch(() => {}); });
+            })()`).catch(() => {});
+          }
+        },
+        onPause: () => {
+          const activeItem = accountViews.get(activeAccountId);
+          if (activeItem && activeItem.view && !activeItem.view.webContents.isDestroyed()) {
+            activeItem.view.webContents.executeJavaScript(`(() => {
+              const btn = document.querySelector('#main div[role="button"]:has(span[data-icon="audio-pause"])');
+              if (btn) btn.click();
+              const audios = document.querySelectorAll('audio');
+              audios.forEach(a => { if (!a.paused) a.pause(); });
+            })()`).catch(() => {});
+          }
+        },
+        onStop: () => {
+          const activeItem = accountViews.get(activeAccountId);
+          if (activeItem && activeItem.view && !activeItem.view.webContents.isDestroyed()) {
+            activeItem.view.webContents.executeJavaScript(`(() => {
+              const audios = document.querySelectorAll('audio');
+              audios.forEach(a => { a.pause(); a.currentTime = 0; });
+            })()`).catch(() => {});
+          }
+        },
+      });
+      mprisService.start(err => {
+        if (err) console.log('MPRIS service unavailable: %s', err.message);
+        else console.log('MPRIS2 service exported on %s', mprisService.busName);
+      });
+    } catch (e) {
+      console.warn('Could not initialize MPRIS: %s', e.message);
+    }
+  }
+
+  setInterval(() => {
+    const timeoutMin = Number(config.get('accounts.hibernation-minutes'));
+    if (timeoutMin && timeoutMin > 0) {
+      const slept = accountsMgr.checkInactivity(timeoutMin);
+      if (slept && slept.length > 0) {
+        notifySidebarState();
+      }
+    }
+  }, 60 * 1000);
+
+  setInterval(() => {
+    if (lockMgr.isEnabled() && !lockMgr.isLocked && lockMgr.checkIdleTimeout()) {
+      lockApp();
+    }
+  }, 30 * 1000);
+
 
   /* The scheme, and the link that may have asked for this window in the first
      place. Both after createWindow, because the second one needs somewhere to

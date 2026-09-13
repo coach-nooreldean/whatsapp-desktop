@@ -154,6 +154,13 @@ test:
 	@node tools/test-update.js
 	@node tools/test-accounts.js
 	@node tools/test-config.js
+	@node tools/test-privacy.js
+	@node tools/test-lock.js
+	@node tools/test-lock-ui.js
+	@node tools/test-mpris.js
+	@node tools/test-themes.js
+	@node tools/test-hibernation.js
+	@node tools/test-shortcuts-and-permissions.js
 
 run:
 	@env -u ELECTRON_RUN_AS_NODE npm start
@@ -171,15 +178,22 @@ package-arch:
 	@cd dist && makepkg --clean --cleanbuild --syncdeps --noconfirm
 	@rm -f dist/PKGBUILD
 
+package-appimage:
+	packaging/build-appimage.sh
+
+package-flatpak:
+	@echo "Flatpak manifest available at packaging/io.github.shehawey.whatsapp-desktop.yml"
+	@echo "Build with: flatpak-builder --force-clean build-dir packaging/io.github.shehawey.whatsapp-desktop.yml"
+
 package-source:
 	@mkdir -p dist
 	@git archive --format=tar.gz --prefix=whatsapp-desktop-$(VERSION)/ -o dist/whatsapp-desktop-$(VERSION)-source.tar.gz HEAD
 	@sha256sum dist/* > dist/SHA256SUMS
 	@echo "  SOURCE  dist/whatsapp-desktop-$(VERSION)-source.tar.gz"
 
-package: package-deb package-rpm package-arch package-source
+package: package-deb package-rpm package-arch package-appimage package-source
 
 clean:
 	rm -rf node_modules
 
-.PHONY: all install autostart no-autostart uninstall icons og screenshots test run package-deb package-rpm package-arch package-source package clean
+.PHONY: all install autostart no-autostart uninstall icons og screenshots test run package-deb package-rpm package-arch package-appimage package-flatpak package-source package clean

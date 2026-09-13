@@ -163,6 +163,11 @@ test:
 	@node tools/test-shortcuts-and-permissions.js
 	@node tools/test-palette.js
 	@node tools/test-system-lock.js
+	@node tools/test-custom-css.js
+	@node tools/test-notification-actions.js
+	@node tools/test-storage-maintenance.js
+	@node tools/test-spellcheck-languages.js
+	@node tools/test-global-shortcuts.js
 
 run:
 	@env -u ELECTRON_RUN_AS_NODE npm start

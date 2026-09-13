@@ -47,6 +47,9 @@ try {
     openFonts: () => executed.push('fonts'),
     reload: () => executed.push('reload'),
     switchAccount: id => executed.push(`switch:${id}`),
+    clearCache: () => executed.push('clear-cache'),
+    openCustomCss: () => executed.push('custom-css'),
+    toggleCallMute: () => executed.push('mute-call'),
   };
 
   const palette = new PaletteManager({
@@ -66,6 +69,9 @@ try {
   check('actionList has settings', actionList.some(a => a.id === 'action:settings'), true);
   check('actionList has fonts', actionList.some(a => a.id === 'action:fonts'), true);
   check('actionList has reload', actionList.some(a => a.id === 'action:reload'), true);
+  check('actionList has clear-cache', actionList.some(a => a.id === 'action:clear-cache'), true);
+  check('actionList has custom-css', actionList.some(a => a.id === 'action:custom-css'), true);
+  check('actionList has mute-call', actionList.some(a => a.id === 'action:mute-call'), true);
 
   // Test 2: Dynamic account items included
   check('actionList includes default account', actionList.some(a => a.id === 'account:switch:default'), true);
@@ -91,6 +97,15 @@ try {
 
   palette.executeAction('action:settings');
   check('settings action executed', executed.includes('settings'), true);
+
+  palette.executeAction('action:clear-cache');
+  check('clear-cache action executed', executed.includes('clear-cache'), true);
+
+  palette.executeAction('action:custom-css');
+  check('custom-css action executed', executed.includes('custom-css'), true);
+
+  palette.executeAction('action:mute-call');
+  check('mute-call action executed', executed.includes('mute-call'), true);
 
   palette.executeAction('account:switch:default');
   check('switchAccount action executed with id', executed.includes('switch:default'), true);

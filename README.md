@@ -137,6 +137,19 @@ the latest release.
   image, and *Inspect* for the devtools that are already a `Ctrl+Shift+I` away.
 - **Screen sharing in a call**, over PipeWire on Wayland, offering windows as
   well as whole screens.
+- **Interactive notifications with Mark as Read & quick reply.** Notifications include
+  a direct "Mark as Read" action button to silently dismiss and mark the conversation read
+  without focusing or unminimizing the window, along with inline quick reply support.
+- **Custom user stylesheet support.** Write bespoke CSS in `~/.config/whatsapp-desktop/custom.css`
+  with live hot-reloading when saved, toggleable from Settings or the Command Palette (`Ctrl+K`).
+- **Storage & cache maintenance.** Safely inspect and purge temporary HTTP and shader disk cache
+  with one click or via Command Palette without logging out of any active sessions or deleting IndexedDB.
+- **Multi-language spellchecker.** Full simultaneous bilingual spellchecking for Arabic (`ar`)
+  and English (`en-US`), with quick-toggle language pills in Settings.
+- **System-wide global shortcuts.** Summon or hide WhatsApp anywhere with `Super+Alt+W` and toggle
+  call microphone mute system-wide with `Super+Alt+M` (customizable in Settings).
+- **Native Wayland auto-detection & VA-API video decode.** Launches with `--ozone-platform-hint=auto`
+  and hardware video decode flags enabled on modern Linux desktops, with an easy X11 fallback toggle.
 - Dark or light follows the desktop, links open in your browser, every download
   asks where to put it, `Ctrl` `+`/`-`/`0` zoom and the window size is
   remembered. `Esc` closes the emoji panel whether or not you picked one.

@@ -333,6 +333,133 @@
       </div>
     </div>
 
+    <!-- Custom User Stylesheet -->
+    <div class="section">
+      <div class="section-title">Custom Stylesheet / مظهر مخصص (custom.css)</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Enable Custom CSS</div>
+            <div class="row-desc">Inject rules from ~/.config/whatsapp-desktop/custom.css</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="customCssToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row" style="border-top: 1px solid var(--border-color); padding-top: 12px; gap: 8px;">
+          <button class="btn-action" id="openCustomCssBtn">Open in Text Editor</button>
+          <button class="btn-action" id="reloadCustomCssBtn">Reload CSS</button>
+          <div id="customCssFeedback" style="font-size: 12px; color: var(--text-muted); align-self: center; margin-left: 8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global OS Shortcuts -->
+    <div class="section">
+      <div class="section-title">Global Shortcuts / اختصارات النظام العامة</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Enable Global Shortcuts</div>
+            <div class="row-desc">Work across desktop session even when running in background</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="globalShortcutsToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Summon / Hide Window</div>
+            <div class="row-desc">Bring WhatsApp to front or hide to tray</div>
+          </div>
+          <input type="text" id="globalToggleShortcutInput" value="Super+Alt+W" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 140px; text-align: center; outline: none;">
+        </div>
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Mute / Unmute Active Call</div>
+            <div class="row-desc">Toggle microphone during voice/video call</div>
+          </div>
+          <input type="text" id="globalMuteShortcutInput" value="Super+Alt+M" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 140px; text-align: center; outline: none;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Spellcheck & Languages -->
+    <div class="section">
+      <div class="section-title">Spellcheck & Languages / التدقيق الإملائي</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Spellcheck</div>
+            <div class="row-desc">Highlight misspellings and provide native corrections</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="spellcheckToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row" style="flex-direction: column; align-items: stretch; border-top: 1px solid var(--border-color); padding-top: 12px;">
+          <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Active Dictionaries (Click to toggle):</div>
+          <div class="pill-group" id="spellcheckPills">
+            <div class="pill-option active" data-lang="ar">العربية (Arabic)</div>
+            <div class="pill-option active" data-lang="en-US">English (US)</div>
+            <div class="pill-option" data-lang="en-GB">English (UK)</div>
+            <div class="pill-option" data-lang="fr">Français (French)</div>
+            <div class="pill-option" data-lang="es">Español (Spanish)</div>
+            <div class="pill-option" data-lang="de">Deutsch (German)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage & Maintenance -->
+    <div class="section">
+      <div class="section-title">Storage & Maintenance / التخزين والبيانات</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Disk & Media Cache</div>
+            <div class="row-desc" id="cacheSizeDesc">Computing cache size...</div>
+          </div>
+          <button class="btn-action" id="clearCacheBtn">Clear Cache</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- System & Display Server -->
+    <div class="section">
+      <div class="section-title">System & Display / خادم العرض والعتاد</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Force X11 / XWayland Fallback</div>
+            <div class="row-desc">Disable native Wayland platform hint (requires restart)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="forceX11Toggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title">Hardware Video Acceleration (VA-API)</div>
+            <div class="row-desc">Use GPU video decoding on Linux (requires restart)</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="hardwareAccelToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="restart-bar" id="restartBar" hidden style="margin-top: 14px;">
+      <span>Restart WhatsApp to finish applying system changes.</span>
+      <button id="restartBtn">Restart</button>
+    </div>
+
     <div class="footer-note">
       Changes apply immediately and save to ~/.config/whatsapp-desktop/
     </div>
@@ -382,10 +509,52 @@
     const lockOnSystemLockToggle = document.getElementById('lockOnSystemLockToggle');
     const lockPasscodeSetupRow = document.getElementById('lockPasscodeSetupRow');
 
+    // Custom CSS
+    const customCssToggle = document.getElementById('customCssToggle');
+    const openCustomCssBtn = document.getElementById('openCustomCssBtn');
+    const reloadCustomCssBtn = document.getElementById('reloadCustomCssBtn');
+    const customCssFeedback = document.getElementById('customCssFeedback');
+
+    // Global Shortcuts
+    const globalShortcutsToggle = document.getElementById('globalShortcutsToggle');
+    const globalToggleShortcutInput = document.getElementById('globalToggleShortcutInput');
+    const globalMuteShortcutInput = document.getElementById('globalMuteShortcutInput');
+
+    // Spellcheck
+    const spellcheckToggle = document.getElementById('spellcheckToggle');
+    const spellcheckPills = document.getElementById('spellcheckPills');
+
+    // Storage
+    const cacheSizeDesc = document.getElementById('cacheSizeDesc');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+
+    // System
+    const forceX11Toggle = document.getElementById('forceX11Toggle');
+    const hardwareAccelToggle = document.getElementById('hardwareAccelToggle');
+    const restartBar = document.getElementById('restartBar');
+    const restartBtn = document.getElementById('restartBtn');
+
     // Hibernation
     const hibernationSelect = document.getElementById('hibernationSelect');
 
     let currentZoom = 1.0;
+
+    function showRestartBar() {
+      if (restartBar) restartBar.removeAttribute('hidden');
+    }
+
+    async function loadCacheSize() {
+      if (!window.api || !window.api.getCacheSize) return;
+      try {
+        const bytes = await window.api.getCacheSize();
+        const mb = (bytes / (1024 * 1024)).toFixed(1);
+        if (cacheSizeDesc) {
+          cacheSizeDesc.textContent = `Using ~${mb} MB of temporary disk and media cache`;
+        }
+      } catch (e) {
+        if (cacheSizeDesc) cacheSizeDesc.textContent = 'Temporary disk cache';
+      }
+    }
 
     function applyThemeToUI(theme) {
       document.documentElement.setAttribute('data-theme', theme || 'system');
@@ -448,6 +617,32 @@
             removePinBtn.style.display = lockStatus.hasPasscode ? 'inline-block' : 'none';
           }
         }
+
+        // Custom CSS
+        if (customCssToggle) customCssToggle.checked = !!data.customCssEnabled;
+
+        // Global Shortcuts
+        if (globalShortcutsToggle) globalShortcutsToggle.checked = data.globalShortcutsEnabled !== false;
+        if (globalToggleShortcutInput) globalToggleShortcutInput.value = data.globalShortcutToggle || 'Super+Alt+W';
+        if (globalMuteShortcutInput) globalMuteShortcutInput.value = data.globalShortcutMute || 'Super+Alt+M';
+
+        // Spellcheck
+        if (spellcheckToggle) spellcheckToggle.checked = data.spellcheckEnabled !== false;
+        const activeLangs = (data.spellcheckLanguages || 'en-US,ar').split(',').map(s => s.trim());
+        if (spellcheckPills && spellcheckPills.querySelectorAll) {
+          spellcheckPills.querySelectorAll('.pill-option').forEach(pill => {
+            const l = pill.getAttribute ? pill.getAttribute('data-lang') : (pill.dataset && pill.dataset.lang);
+            if (activeLangs.includes(l)) pill.classList.add('active');
+            else pill.classList.remove('active');
+          });
+        }
+
+        // Storage
+        loadCacheSize();
+
+        // System
+        if (forceX11Toggle) forceX11Toggle.checked = !!data.forceX11;
+        if (hardwareAccelToggle) hardwareAccelToggle.checked = data.hardwareAcceleration !== false;
       } catch (e) {
         console.error('Failed to load settings:', e);
       }
@@ -575,6 +770,136 @@
     if (hibernationSelect) {
       hibernationSelect.addEventListener('change', async () => {
         if (window.api) await window.api.setSetting('accounts.hibernation-minutes', parseInt(hibernationSelect.value, 10));
+      });
+    }
+
+    // Custom CSS Handlers
+    if (customCssToggle) {
+      customCssToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('view.custom-css-enabled', customCssToggle.checked);
+      });
+    }
+    if (openCustomCssBtn) {
+      openCustomCssBtn.addEventListener('click', async () => {
+        if (window.api && window.api.openCustomCss) {
+          await window.api.openCustomCss();
+          if (customCssFeedback) {
+            customCssFeedback.style.color = 'var(--text-muted)';
+            customCssFeedback.textContent = 'Opened custom.css in editor';
+            setTimeout(() => { customCssFeedback.textContent = ''; }, 3000);
+          }
+        }
+      });
+    }
+    if (reloadCustomCssBtn) {
+      reloadCustomCssBtn.addEventListener('click', async () => {
+        if (window.api && window.api.reloadCustomCss) {
+          const res = await window.api.reloadCustomCss();
+          if (customCssFeedback) {
+            customCssFeedback.style.color = res && res.ok ? 'var(--accent)' : '#ef4444';
+            customCssFeedback.textContent = res && res.ok ? 'Custom CSS reloaded!' : 'Failed to reload CSS';
+            setTimeout(() => { customCssFeedback.textContent = ''; }, 3000);
+          }
+        }
+      });
+    }
+
+    // Global Shortcuts Handlers
+    if (globalShortcutsToggle) {
+      globalShortcutsToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('shortcuts.global-enabled', globalShortcutsToggle.checked);
+      });
+    }
+    if (globalToggleShortcutInput) {
+      globalToggleShortcutInput.addEventListener('change', async () => {
+        const val = globalToggleShortcutInput.value.trim() || 'Super+Alt+W';
+        if (window.api) await window.api.setSetting('shortcuts.global-toggle', val);
+      });
+    }
+    if (globalMuteShortcutInput) {
+      globalMuteShortcutInput.addEventListener('change', async () => {
+        const val = globalMuteShortcutInput.value.trim() || 'Super+Alt+M';
+        if (window.api) await window.api.setSetting('shortcuts.global-mute', val);
+      });
+    }
+
+    // Spellcheck Handlers
+    if (spellcheckToggle) {
+      spellcheckToggle.addEventListener('change', async () => {
+        if (window.api) await window.api.setSetting('behaviour.spellcheck', spellcheckToggle.checked);
+      });
+    }
+    if (spellcheckPills && spellcheckPills.querySelectorAll) {
+      spellcheckPills.querySelectorAll('.pill-option').forEach(pill => {
+        pill.addEventListener('click', async () => {
+          pill.classList.toggle('active');
+          const active = [];
+          spellcheckPills.querySelectorAll('.pill-option.active').forEach(p => {
+            const lang = p.getAttribute('data-lang');
+            if (lang) active.push(lang);
+          });
+          if (active.length === 0) {
+            active.push('en-US');
+            const enPill = spellcheckPills.querySelector('[data-lang="en-US"]');
+            if (enPill) enPill.classList.add('active');
+          }
+          if (window.api && window.api.setSpellcheckLanguages) {
+            await window.api.setSpellcheckLanguages(active);
+          }
+        });
+      });
+    }
+
+    // Storage Maintenance Handlers
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener('click', async () => {
+        if (clearCacheBtn.disabled) return;
+        clearCacheBtn.disabled = true;
+        const oldText = clearCacheBtn.textContent;
+        clearCacheBtn.textContent = 'Clearing...';
+        try {
+          if (window.api && window.api.clearCache) {
+            await window.api.clearCache();
+          }
+          await loadCacheSize();
+          clearCacheBtn.textContent = 'Cleared!';
+          setTimeout(() => {
+            clearCacheBtn.textContent = oldText;
+            clearCacheBtn.disabled = false;
+          }, 2000);
+        } catch (e) {
+          console.error('Failed to clear cache:', e);
+          clearCacheBtn.textContent = 'Error';
+          setTimeout(() => {
+            clearCacheBtn.textContent = oldText;
+            clearCacheBtn.disabled = false;
+          }, 2000);
+        }
+      });
+    }
+
+    // System Handlers
+    if (forceX11Toggle) {
+      forceX11Toggle.addEventListener('change', async () => {
+        if (window.api) {
+          const res = await window.api.setSetting('system.force-x11', forceX11Toggle.checked);
+          if (res && res.restart) showRestartBar();
+        }
+      });
+    }
+    if (hardwareAccelToggle) {
+      hardwareAccelToggle.addEventListener('change', async () => {
+        if (window.api) {
+          const res = await window.api.setSetting('system.hardware-acceleration', hardwareAccelToggle.checked);
+          if (res && res.restart) showRestartBar();
+        }
+      });
+    }
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => {
+        if (window.api && window.api.restart) {
+          window.api.restart();
+        }
       });
     }
 

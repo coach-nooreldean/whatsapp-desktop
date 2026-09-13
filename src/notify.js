@@ -165,7 +165,7 @@ class Seen {
  * lets it be withdrawn when that chat is read.
  */
 class Entry {
-  constructor(owner, { key, msgId, title, body, iconPath, onClick, ongoing }) {
+  constructor(owner, { key, msgId, title, body, iconPath, onClick, onMarkAsRead, onReply, ongoing }) {
     this.owner = owner;
     this.key = key || title;
     /* The message this banner is, when there is one to name. A withdrawal used
@@ -178,6 +178,8 @@ class Entry {
     this.body = body || '';
     this.iconPath = iconPath;
     this.onClick = onClick;
+    this.onMarkAsRead = onMarkAsRead;
+    this.onReply = onReply;
     this.raisedAt = Date.now();
     this.settled = false;
     this.timer = null;
@@ -229,6 +231,28 @@ class Entry {
       this._open();
       this.dispose();
     });
+    notification.on('action', (event, index) => {
+      this.settled = true;
+      if (typeof this.onMarkAsRead === 'function') {
+        try {
+          this.onMarkAsRead();
+        } catch (err) {
+          console.error('Failed to run mark-as-read callback: %s', err.message);
+        }
+      }
+      this.dispose();
+    });
+    notification.on('reply', (event, replyText) => {
+      this.settled = true;
+      if (typeof this.onReply === 'function' && replyText) {
+        try {
+          this.onReply(replyText);
+        } catch (err) {
+          console.error('Failed to run reply callback: %s', err.message);
+        }
+      }
+      this.dispose();
+    });
     /* GNOME sends this when the user dismisses the banner or clears it out of
        the notification centre -- not when it merely leaves the screen. So a
        close we did not ask for means the user has dealt with the message. */
@@ -240,12 +264,16 @@ class Entry {
   }
 
   show(seconds) {
+    const actions = this.ongoing ? [] : [{ type: 'button', text: 'Mark as Read' }];
     const banner = new Notification({
       title: this.title,
       body: this.body,
       icon: this.iconPath,
       urgency: 'normal',
       timeoutType: 'default',
+      actions: actions,
+      hasReply: !this.ongoing,
+      replyPlaceholder: 'Reply...',
     });
     this._watch(banner);
     banner.show();
@@ -260,12 +288,20 @@ class Entry {
       banner.__retire();
 
       const filed = new Notification({
-        title: this.title, body: this.body, icon: this.iconPath,
-        urgency: 'low', silent: true, timeoutType: 'default',
+        title: this.title,
+        body: this.body,
+        icon: this.iconPath,
+        urgency: 'low',
+        silent: true,
+        timeoutType: 'default',
+        actions: actions,
+        hasReply: !this.ongoing,
+        replyPlaceholder: 'Reply...',
       });
       this._watch(filed);
       filed.show();
     }, Math.max(1, seconds) * 1000);
+    if (this.timer && this.timer.unref) this.timer.unref();
 
     return this;
   }
@@ -327,7 +363,7 @@ class Banners {
    * icon      base64 image bytes for the sender's picture, or nothing
    * onClick   what to do when the user clicks the banner
    */
-  show({ identity, msgId, key, title, body, icon, onClick, redacted, ongoing }) {
+  show({ identity, msgId, key, title, body, icon, onClick, onMarkAsRead, onReply, redacted, ongoing }) {
     if (!this.supported || !title) return null;
 
     if (identity && this.seen) {
@@ -345,6 +381,8 @@ class Banners {
       body: this.hidePreview ? (redacted || 'New message') : body,
       iconPath: avatarPath(icon) || this.appIcon || undefined,
       onClick,
+      onMarkAsRead,
+      onReply,
       ongoing,
     });
 

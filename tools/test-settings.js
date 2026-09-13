@@ -52,7 +52,12 @@ const node = id => ({
   style: {}, dataset: {}, options: [],
   classes: new Set(),
   classList: {
-    toggle(name, on) { on ? this.owner.classes.add(name) : this.owner.classes.delete(name); },
+    toggle(name, on) {
+      if (on === true) this.owner.classes.add(name);
+      else if (on === false) this.owner.classes.delete(name);
+      else if (this.owner.classes.has(name)) this.owner.classes.delete(name);
+      else this.owner.classes.add(name);
+    },
     add(name) { this.owner.classes.add(name); },
     remove(name) { this.owner.classes.delete(name); },
     contains(name) { return this.owner.classes.has(name); },
@@ -61,6 +66,9 @@ const node = id => ({
   addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
   appendChild(child) { this.options.push(child); },
   setAttribute() {}, removeAttribute() {},
+  getAttribute(name) { return this[name] || this.dataset[name] || null; },
+  querySelectorAll(sel) { return []; },
+  querySelector(sel) { return null; },
   scrollIntoView() { this.scrolled = true; },
   /* Awaited, because every handler in these windows saves over IPC. */
   fire(type) { return Promise.all((this.listeners[type] || []).map(fn => fn())); },
@@ -104,6 +112,14 @@ const open = async (file, answer) => {
       close() { called.push(['close']); },
       restart() { called.push(['restart']); },
       onSettingsChanged() {},
+      getAccounts: async () => [],
+      getActiveAccountId: async () => 'default',
+      getLockStatus: async () => ({ enabled: false, hasPasscode: false, timeout: 15 }),
+      getCacheSize: async () => 1024 * 1024 * 12,
+      clearCache: async () => ({ ok: true }),
+      openCustomCss: async () => ({ ok: true }),
+      reloadCustomCss: async () => ({ ok: true }),
+      setSpellcheckLanguages: async langs => { saved.push(['behaviour.spellcheck-languages', langs.join(',')]); return { ok: true }; },
     },
   };
 
@@ -143,12 +159,29 @@ const open = async (file, answer) => {
       ['notifyToggle', 'notifications.enabled'],
       ['notifySoundToggle', 'notifications.sound'],
       ['outgoingSoundToggle', 'notifications.outgoing-sound'],
+      ['customCssToggle', 'view.custom-css-enabled'],
+      ['globalShortcutsToggle', 'shortcuts.global-enabled'],
+      ['spellcheckToggle', 'behaviour.spellcheck'],
+      ['forceX11Toggle', 'system.force-x11'],
+      ['hardwareAccelToggle', 'system.hardware-acceleration'],
     ];
     for (const [id, key] of switches) {
       w.el(id).checked = false;
       await w.el(id).fire('change');
       assert.strictEqual(w.last(key), false, id + ' saves ' + key);
     }
+
+    w.el('globalToggleShortcutInput').value = 'Super+Alt+X';
+    await w.el('globalToggleShortcutInput').fire('change');
+    assert.strictEqual(w.last('shortcuts.global-toggle'), 'Super+Alt+X');
+
+    w.el('globalMuteShortcutInput').value = 'Super+Alt+N';
+    await w.el('globalMuteShortcutInput').fire('change');
+    assert.strictEqual(w.last('shortcuts.global-mute'), 'Super+Alt+N');
+
+    await w.el('clearCacheBtn').fire('click');
+    await w.el('openCustomCssBtn').fire('click');
+    await w.el('reloadCustomCssBtn').fire('click');
 
     /* The theme lives here and only here: it came out of the tray menu, so this
        is the one way to it and it had better work. */

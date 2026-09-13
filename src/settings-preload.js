@@ -23,6 +23,11 @@ contextBridge.exposeInMainWorld('api', {
   setPasscode: pin => ipcRenderer.invoke('lock:set-passcode', pin),
   removePasscode: currentPin => ipcRenderer.invoke('lock:remove-passcode', currentPin),
   getLockStatus: () => ipcRenderer.invoke('lock:get-status'),
+  getCacheSize: () => ipcRenderer.invoke('storage:get-cache-size'),
+  clearCache: () => ipcRenderer.invoke('storage:clear-cache'),
+  openCustomCss: () => ipcRenderer.invoke('custom-css:open'),
+  reloadCustomCss: () => ipcRenderer.invoke('custom-css:reload'),
+  setSpellcheckLanguages: langs => ipcRenderer.invoke('spellcheck:set-languages', langs),
   onSettingsChanged: callback => {
     ipcRenderer.on('settings:changed', (_, data) => callback(data));
   },

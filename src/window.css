@@ -556,8 +556,63 @@ input:checked + .slider:before {
   flex-shrink: 0;
 }
 
-.restart-bar button:hover {
-  background-color: var(--accent-hover);
+/* Language pills */
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pill-option {
+  padding: 5px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pill-option:hover {
+  border-color: var(--accent);
+}
+
+.pill-option.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+/* Secondary Action Button */
+.btn-action {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+
+.btn-action-primary {
+  background: var(--accent);
+  color: #ffffff;
+  border: none;
+}
+
+.btn-action-primary:hover {
+  background: var(--accent-hover);
 }
 
 .footer-note {

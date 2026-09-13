@@ -84,6 +84,30 @@ class PaletteManager {
         shortcut: 'Ctrl+R',
         icon: 'reload',
       },
+      {
+        id: 'action:clear-cache',
+        title: 'Clear Disk & Media Cache',
+        description: 'Free up disk space by purging cached media without logging out',
+        category: 'Maintenance',
+        shortcut: '',
+        icon: 'trash',
+      },
+      {
+        id: 'action:custom-css',
+        title: 'Open custom.css in Editor',
+        description: 'Customize WhatsApp Web styles in your default Linux text editor',
+        category: 'Appearance',
+        shortcut: '',
+        icon: 'code',
+      },
+      {
+        id: 'action:mute-call',
+        title: 'Toggle Call Mute',
+        description: 'Mute or unmute active WhatsApp voice/video call microphone',
+        category: 'Calls',
+        shortcut: 'Super+Alt+M',
+        icon: 'mic',
+      },
     ];
 
     // Dynamic account switching items
@@ -226,6 +250,15 @@ class PaletteManager {
         break;
       case 'action:reload':
         if (this.actions && this.actions.reload) this.actions.reload();
+        break;
+      case 'action:clear-cache':
+        if (this.actions && this.actions.clearCache) this.actions.clearCache();
+        break;
+      case 'action:custom-css':
+        if (this.actions && this.actions.openCustomCss) this.actions.openCustomCss();
+        break;
+      case 'action:mute-call':
+        if (this.actions && this.actions.toggleCallMute) this.actions.toggleCallMute();
         break;
     }
   }

@@ -9,12 +9,12 @@
  */
 'use strict';
 
-const { app, BrowserWindow, WebContentsView, Menu, MenuItem, dialog, clipboard, session, shell, nativeTheme, ipcMain, screen: electronScreen, desktopCapturer } = require('electron');
+const { app, BrowserWindow, WebContentsView, Menu, MenuItem, dialog, clipboard, session, shell, nativeTheme, ipcMain, screen: electronScreen, desktopCapturer, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-const { Config } = require('./config.js');
+const { Config, CUSTOM_CSS_PATH } = require('./config.js');
 const { AccountsManager, DEFAULT_PALETTE } = require('./accounts.js');
 const desktop = require('./desktop.js');
 const style = require('./style.js');
@@ -220,15 +220,18 @@ if (fontConfigFile) {
  * this switch exists to prevent. WAYLAND_DISPLAY is set by the compositor
  * itself, so between the two the answer survives the trip. */
 const chromiumFeatures = ['MemoryPurgeOnFreezeLimit', 'WebRTCPipeWireCapturer'];
-const onWayland = process.env.XDG_SESSION_TYPE === 'wayland' ||
-                  !!process.env.WAYLAND_DISPLAY;
+const forceX11 = config.get('system.force-x11') === true || process.argv.includes('--ozone-platform=x11');
+const onWayland = !forceX11 && (process.env.XDG_SESSION_TYPE === 'wayland' || !!process.env.WAYLAND_DISPLAY);
 if (onWayland) {
   app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
   chromiumFeatures.push('WaylandWindowDecorations');
 }
+if (config.get('system.hardware-acceleration') !== false) {
+  chromiumFeatures.push('VaapiVideoDecodeLinuxGL', 'VaapiVideoDecoder');
+}
 /* Said out loud, because the difference is one a user reports as "it looks
    blurry" or "it scrolls in steps" and never as "it is on XWayland". */
-console.log('display server: %s', onWayland ? 'wayland, natively' : 'x11');
+console.log('display server: %s%s', onWayland ? 'wayland, natively' : 'x11', forceX11 ? ' (forced)' : '');
 /* WhatsApp Web is one page that stays open for days. Letting Chromium hand
    memory back when it is not being looked at is worth more here than the
    milliseconds it costs to fault it in again. Electron accepts one
@@ -459,6 +462,21 @@ function toggleCommandPalette() {
           const activeWc = getActiveWebContents();
           if (activeWc) activeWc.reload();
         },
+        clearCache: async () => {
+          await clearAllCaches();
+          if (win && !win.isDestroyed()) {
+            dialog.showMessageBox(win, {
+              type: 'info',
+              title: 'Cache Cleared',
+              message: 'WhatsApp Desktop temporary cache was successfully cleared. Your login sessions were kept safe.',
+            }).catch(() => {});
+          }
+        },
+        openCustomCss: async () => {
+          if (!fs.existsSync(CUSTOM_CSS_PATH)) initCustomCssWatcher();
+          await shell.openPath(CUSTOM_CSS_PATH);
+        },
+        toggleCallMute: () => toggleCallMute(),
         switchAccount: id => switchToAccount(id),
       },
       theme: config.get('view.theme') || 'system',
@@ -962,6 +980,123 @@ const setAutostart = enable => {
   }
 };
 
+const getSpellcheckLanguages = () => {
+  const raw = config.get('behaviour.spellcheck-languages') || 'en-US,ar';
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+const applySpellcheckToSession = (ses) => {
+  if (!ses) return;
+  const enabled = config.get('behaviour.spellcheck') !== false;
+  const langs = getSpellcheckLanguages();
+  try {
+    if (enabled && langs.length) {
+      ses.setSpellCheckerLanguages(langs);
+    } else {
+      ses.setSpellCheckerLanguages([]);
+    }
+  } catch (err) {
+    console.warn('Could not set spellchecker languages: %s', err.message);
+  }
+};
+
+const clearAllCaches = async () => {
+  let cleared = 0;
+  for (const { view } of accountViews.values()) {
+    if (view && view.webContents && view.webContents.session) {
+      try {
+        await view.webContents.session.clearCache();
+        await view.webContents.session.clearCodeCaches({});
+        cleared++;
+      } catch (e) {}
+    }
+  }
+  return { ok: true, cleared };
+};
+
+const initCustomCssWatcher = () => {
+  try {
+    if (!fs.existsSync(CUSTOM_CSS_PATH)) {
+      const template = `/*
+ * WhatsApp Desktop - Custom User Stylesheet
+ * 
+ * Any CSS written here will be injected into WhatsApp Web and hot-reloaded upon saving.
+ * Example customizations:
+ *
+ *   /* Compact chat list: */
+ *   /* #pane-side [role="row"] { height: 60px !important; } */
+ *
+ *   /* Hide chat list avatars: */
+ *   /* #pane-side [role="gridcell"] img { display: none !important; } */
+ */
+`;
+      fs.mkdirSync(path.dirname(CUSTOM_CSS_PATH), { recursive: true });
+      fs.writeFileSync(CUSTOM_CSS_PATH, template, { mode: 0o644 });
+    }
+
+    let debounceTimer = null;
+    fs.watch(CUSTOM_CSS_PATH, (eventType) => {
+      if (eventType === 'change' || eventType === 'rename') {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          console.log('custom.css changed, hot-reloading styles...');
+          drawStyle();
+        }, 120);
+      }
+    });
+  } catch (err) {
+    console.warn('could not initialize custom.css watcher: %s', err.message);
+  }
+};
+
+const toggleCallMute = () => {
+  const item = accountViews.get(activeAccountId);
+  if (item && item.view && !item.view.webContents.isDestroyed()) {
+    item.view.webContents.send('wa:toggle-call-mute');
+  }
+};
+
+const wireGlobalShortcuts = () => {
+  try {
+    globalShortcut.unregisterAll();
+    if (config.get('shortcuts.global-enabled') === false) return;
+
+    const toggleKey = config.get('shortcuts.global-toggle') || 'Super+Alt+W';
+    if (toggleKey) {
+      try {
+        globalShortcut.register(toggleKey, () => {
+          if (!win || win.isDestroyed()) return;
+          if (win.isVisible() && win.isFocused()) {
+            if (config.get('behaviour.close-to-tray')) {
+              win.hide();
+            } else {
+              win.minimize();
+            }
+          } else {
+            showWindow('global hotkey');
+            win.focus();
+          }
+        });
+      } catch (err) {
+        console.warn('could not register global toggle shortcut %s: %s', toggleKey, err.message);
+      }
+    }
+
+    const muteKey = config.get('shortcuts.global-mute') || 'Super+Alt+M';
+    if (muteKey) {
+      try {
+        globalShortcut.register(muteKey, () => {
+          toggleCallMute();
+        });
+      } catch (err) {
+        console.warn('could not register global call mute shortcut %s: %s', muteKey, err.message);
+      }
+    }
+  } catch (err) {
+    console.warn('could not wire global shortcuts: %s', err.message);
+  }
+};
+
 /* One switch, moved. The settings window asks for this over IPC and the debug
    rig asks for it directly, so both go the same way through the same redraws --
    which is what makes a switch testable without a mouse. */
@@ -992,6 +1127,19 @@ const changeSetting = (key, value) => {
     applyPrivacyState();
   }
   if (key === 'view.font-size') applyStyle();
+  if (key === 'view.custom-css-enabled') applyStyle();
+  if (key.startsWith('shortcuts.')) wireGlobalShortcuts();
+  if (key.startsWith('behaviour.spellcheck')) {
+    for (const { view } of accountViews.values()) {
+      if (view && view.webContents && view.webContents.session) {
+        applySpellcheckToSession(view.webContents.session);
+      }
+    }
+    applySpellcheckToSession(session.defaultSession);
+  }
+  if (key.startsWith('system.')) {
+    return { ok: true, restart: true };
+  }
 
   /*
    * A font change, and the only honest answer to "does this need a restart".
@@ -1322,6 +1470,13 @@ const styleSheet = () => {
   const useHyprland = config.get('view.hyprland-accent') !== false;
   const webThemeCss = getWebThemeCss(currentTheme, useHyprland ? (hyprlandColors || detectHyprlandColors()) : null);
 
+  let customCss = '';
+  if (config.get('view.custom-css-enabled') && fs.existsSync(CUSTOM_CSS_PATH)) {
+    try {
+      customCss = fs.readFileSync(CUSTOM_CSS_PATH, 'utf8');
+    } catch (e) {}
+  }
+
   return [
     sheet,
     /* The faces themselves: one family name, the Latin font, and -- when the
@@ -1331,6 +1486,7 @@ const styleSheet = () => {
     forcingFont() ? style.fontFaces(pageFontStack, chosenFonts()) : '',
     webThemeCss,
     PRIVACY_CSS,
+    customCss,
   ].filter(Boolean).join('\n');
 };
 
@@ -2144,6 +2300,14 @@ const describeThenNotify = (targetAccountId = activeAccountId) => setTimeout(asy
       if (item && !item.view.webContents.isDestroyed())
         item.view.webContents.send('wa:open-chat-request', { token, name: chat, preview: message });
     },
+    onMarkAsRead: () => {
+      if (item && !item.view.webContents.isDestroyed())
+        item.view.webContents.send('wa:mark-chat-read-request', { token, name: chat, preview: message });
+    },
+    onReply: (replyText) => {
+      if (item && !item.view.webContents.isDestroyed())
+        item.view.webContents.send('wa:reply-chat-request', { token, name: chat, preview: message, text: replyText });
+    },
   });
   if (raised) playTone();
 }, 250);
@@ -2224,6 +2388,14 @@ const wireSettingsIpc = () => {
       privacyBlurContacts: !!config.get('privacy.blur-contacts'),
       hibernationMinutes: config.get('accounts.hibernation-minutes') != null ? config.get('accounts.hibernation-minutes') : 30,
       lockOnSystemLock: config.get('lock.auto-lock-on-system-lock') !== false,
+      customCssEnabled: !!config.get('view.custom-css-enabled'),
+      globalShortcutsEnabled: config.get('shortcuts.global-enabled') !== false,
+      globalShortcutToggle: config.get('shortcuts.global-toggle') || 'Super+Alt+W',
+      globalShortcutMute: config.get('shortcuts.global-mute') || 'Super+Alt+M',
+      forceX11: !!config.get('system.force-x11'),
+      hardwareAcceleration: config.get('system.hardware-acceleration') !== false,
+      spellcheckEnabled: config.get('behaviour.spellcheck') !== false,
+      spellcheckLanguages: config.get('behaviour.spellcheck-languages') || 'en-US,ar',
       /* The family the client draws the page in, so this window can be drawn in
          it too rather than in whatever Chromium picks for a plain page. */
       font: uiFont(),
@@ -2266,6 +2438,46 @@ const wireSettingsIpc = () => {
   });
 
   ipcMain.handle('settings:set', (_, key, value) => changeSetting(key, value));
+
+  ipcMain.handle('storage:get-cache-size', async () => {
+    let totalBytes = 0;
+    for (const { view } of accountViews.values()) {
+      if (view && view.webContents && view.webContents.session) {
+        try {
+          totalBytes += await view.webContents.session.getCacheSize();
+        } catch (e) {}
+      }
+    }
+    return totalBytes;
+  });
+
+  ipcMain.handle('storage:clear-cache', async () => {
+    return await clearAllCaches();
+  });
+
+  ipcMain.handle('custom-css:open', async () => {
+    if (!fs.existsSync(CUSTOM_CSS_PATH)) initCustomCssWatcher();
+    await shell.openPath(CUSTOM_CSS_PATH);
+    return true;
+  });
+
+  ipcMain.handle('custom-css:reload', async () => {
+    await drawStyle();
+    return true;
+  });
+
+  ipcMain.handle('spellcheck:set-languages', (_, langs) => {
+    const langStr = Array.isArray(langs) ? langs.join(',') : String(langs || '');
+    config.set('behaviour.spellcheck-languages', langStr);
+    config.save();
+    for (const { view } of accountViews.values()) {
+      if (view && view.webContents && view.webContents.session) {
+        applySpellcheckToSession(view.webContents.session);
+      }
+    }
+    applySpellcheckToSession(session.defaultSession);
+    return true;
+  });
 
   ipcMain.handle('lock:get-status', () => {
     return {
@@ -2540,6 +2752,14 @@ const wireWhatsAppPageIpc = () => {
           item.view.webContents.send('wa:store-open', { chat: note.chat, name: note.title,
                                                   preview: note.text, msg: note.msg,
                                                   story: !!note.story });
+      },
+      onMarkAsRead: () => {
+        if (item && !item.view.webContents.isDestroyed())
+          item.view.webContents.send('wa:store-mark-read', { chat: note.chat, name: note.title, msg: note.msg });
+      },
+      onReply: (replyText) => {
+        if (item && !item.view.webContents.isDestroyed())
+          item.view.webContents.send('wa:store-reply', { chat: note.chat, name: note.title, msg: note.msg, text: replyText });
       },
     });
     if (!banner) return;
@@ -3002,13 +3222,7 @@ function configureSession(ses) {
   wireDownloads(ses);
   wirePermissions(ses);
   wireScreenSharing(ses);
-  if (config.get('behaviour.spellcheck')) {
-    try {
-      ses.setSpellCheckerLanguages(['en-US']);
-    } catch (err) {
-      console.warn('Could not set spellchecker language: %s', err.message);
-    }
-  }
+  applySpellcheckToSession(ses);
 }
 
 app.on('second-instance', (event, argv) => {
@@ -3048,6 +3262,7 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   quitting = true;
+  try { globalShortcut.unregisterAll(); } catch (e) {}
   /* The tray keeps a gdbus monitor alive to notice a status icon host coming and
      going; nothing else would take it down. */
   if (tray) tray.destroy();
@@ -3080,6 +3295,8 @@ app.whenReady().then(() => {
 
   wireIpc();
   createWindow();
+  initCustomCssWatcher();
+  wireGlobalShortcuts();
 
   if (config.get('behaviour.mpris-enabled') !== false) {
     try {

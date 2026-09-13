@@ -1277,6 +1277,68 @@ const start = ({ send, on }) => {
     setTimeout(refreshOpen, 400);
   });
 
+  on('mark-chat-read-request', request => {
+    const wanted = typeof request === 'string' ? { name: request } : (request || {});
+    const held = wanted.token ? openable.get(wanted.token) : null;
+    const name = wanted.name || (held && held.name) || '';
+    const preview = wanted.preview || (held && held.preview) || '';
+
+    if (waStore && typeof waStore.markRead === 'function' && wanted.chat) {
+      if (waStore.markRead(wanted.chat)) return;
+    }
+
+    const row = (held && held.row && held.row.isConnected ? held.row : null) ||
+                findRow(name, preview) ||
+                rowFor(name);
+    if (!row) { log('cannot mark read for "' + name + '": no row for it in list'); return; }
+    if (wanted.token) openable.delete(wanted.token);
+    pressRow(row);
+    setTimeout(refreshOpen, 400);
+  });
+
+  on('reply-chat-request', request => {
+    const wanted = typeof request === 'string' ? { name: request } : (request || {});
+    const replyText = wanted.text || '';
+    if (!replyText) return;
+    const held = wanted.token ? openable.get(wanted.token) : null;
+    const name = wanted.name || (held && held.name) || '';
+    const preview = wanted.preview || (held && held.preview) || '';
+
+    const row = (held && held.row && held.row.isConnected ? held.row : null) ||
+                findRow(name, preview) ||
+                rowFor(name);
+    if (row) {
+      if (wanted.token) openable.delete(wanted.token);
+      pressRow(row);
+      setTimeout(() => {
+        const composer = document.querySelector('footer [contenteditable="true"]');
+        if (composer) {
+          composer.focus();
+          document.execCommand('insertText', false, replyText);
+          setTimeout(() => {
+            const sendBtn = document.querySelector('footer button [data-icon="send"], footer [data-icon="send"]') ||
+                            document.querySelector('footer span[data-icon="send"]');
+            if (sendBtn) {
+              const btn = sendBtn.closest('button') || sendBtn;
+              btn.click();
+            } else {
+              composer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            }
+          }, 150);
+        }
+      }, 400);
+    }
+  });
+
+  on('toggle-call-mute', () => {
+    const micBtn = document.querySelector('button[aria-label*="mute" i], button[aria-label*="mic" i], button[aria-label*="كتم" i], span[data-icon="mic-off"], span[data-icon="mic"]');
+    if (micBtn) {
+      const btn = micBtn.closest('button') || micBtn;
+      btn.click();
+      log('call microphone mute toggled');
+    }
+  });
+
   /*
    * A chat asked for by phone number: a whatsapp: or wa.me link, followed from
    * outside this window. See src/links.js for how one gets here.
@@ -4044,6 +4106,66 @@ const start = ({ send, on }) => {
       /* The same path a banner raised by the watcher takes. */
       const row = findRow(request.name, request.preview) || rowFor(request.name);
       if (row) pressRow(row);
+    }
+  });
+
+  on('store-mark-read', request => {
+    const chatId = request && request.chat;
+    if (chatId && waStore && typeof waStore.markRead === 'function') {
+      if (waStore.markRead(chatId)) return;
+    }
+    if (request && request.name) {
+      const row = findRow(request.name, request.preview) || rowFor(request.name);
+      if (row) pressRow(row);
+    }
+  });
+
+  on('store-reply', request => {
+    const chatId = request && request.chat;
+    const replyText = request && request.text;
+    if (!replyText) return;
+    if (chatId && waStore && waStore.open && waStore.open(chatId)) {
+      setTimeout(() => {
+        const composer = document.querySelector('footer [contenteditable="true"]');
+        if (composer) {
+          composer.focus();
+          document.execCommand('insertText', false, replyText);
+          setTimeout(() => {
+            const sendBtn = document.querySelector('footer button [data-icon="send"], footer [data-icon="send"]') ||
+                            document.querySelector('footer span[data-icon="send"]');
+            if (sendBtn) {
+              const btn = sendBtn.closest('button') || sendBtn;
+              btn.click();
+            } else {
+              composer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            }
+          }, 150);
+        }
+      }, 400);
+      return;
+    }
+    if (request && request.name) {
+      const row = findRow(request.name, request.preview) || rowFor(request.name);
+      if (row) {
+        pressRow(row);
+        setTimeout(() => {
+          const composer = document.querySelector('footer [contenteditable="true"]');
+          if (composer) {
+            composer.focus();
+            document.execCommand('insertText', false, replyText);
+            setTimeout(() => {
+              const sendBtn = document.querySelector('footer button [data-icon="send"], footer [data-icon="send"]') ||
+                              document.querySelector('footer span[data-icon="send"]');
+              if (sendBtn) {
+                const btn = sendBtn.closest('button') || sendBtn;
+                btn.click();
+              } else {
+                composer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+              }
+            }, 150);
+          }
+        }, 400);
+      }
     }
   });
 

@@ -45,6 +45,13 @@ try {
   check('default links claim-scheme is true', cfg.get('links.claim-scheme'), true);
   check('default updates check is true', cfg.get('updates.check'), true);
   check('default sidebar-collapsed is false', cfg.get('view.sidebar-collapsed'), false);
+  check('default custom-css-enabled is false', cfg.get('view.custom-css-enabled'), false);
+  check('default global-enabled is true', cfg.get('shortcuts.global-enabled'), true);
+  check('default global-toggle is Super+Alt+W', cfg.get('shortcuts.global-toggle'), 'Super+Alt+W');
+  check('default global-mute is Super+Alt+M', cfg.get('shortcuts.global-mute'), 'Super+Alt+M');
+  check('default spellcheck-languages is en-US,ar', cfg.get('behaviour.spellcheck-languages'), 'en-US,ar');
+  check('default force-x11 is false', cfg.get('system.force-x11'), false);
+  check('default hardware-acceleration is true', cfg.get('system.hardware-acceleration'), true);
 
   /* ----------------------------------------------------------------- get and set */
 
@@ -65,6 +72,8 @@ try {
   check('saved file contains serialized zoom level', savedText.includes('zoom = 1.25'), true);
   check('saved file contains links section with claim-scheme', savedText.includes('[links]'), true);
   check('saved file contains updates section with check flag', savedText.includes('[updates]'), true);
+  check('saved file contains system section', savedText.includes('[system]'), true);
+  check('saved file contains shortcuts section', savedText.includes('[shortcuts]'), true);
 
   /* --------------------------------------------------- reload & parsing variants */
 
@@ -77,10 +86,12 @@ try {
     'theme = light',
     'font-size = 18',
     'zoom = 1.5',
+    'custom-css-enabled = yes',
     '',
     '[behaviour]',
     'close-to-tray = no',
     'minimize-to-tray = yes',
+    'spellcheck-languages = ar,fr',
     '',
     '[notifications]',
     'enabled = 0',
@@ -89,6 +100,15 @@ try {
     '[media]',
     'download-stickers = false',
     'ask-where-to-save = true',
+    '',
+    '[shortcuts]',
+    'global-enabled = false',
+    'global-toggle = Ctrl+Alt+W',
+    'global-mute = Ctrl+Alt+M',
+    '',
+    '[system]',
+    'force-x11 = true',
+    'hardware-acceleration = no',
   ].join('\n');
 
   fs.writeFileSync(CONFIG_PATH, customConfig);
@@ -99,12 +119,19 @@ try {
     ['theme parses string value "light"', 'view.theme', 'light'],
     ['font-size coerces integer "18" to number', 'view.font-size', 18],
     ['zoom coerces float "1.5" to number', 'view.zoom', 1.5],
+    ['custom-css-enabled coerces "yes" to boolean true', 'view.custom-css-enabled', true],
     ['close-to-tray coerces "no" to boolean false', 'behaviour.close-to-tray', false],
     ['minimize-to-tray coerces "yes" to boolean true', 'behaviour.minimize-to-tray', true],
+    ['spellcheck-languages parses comma-separated string', 'behaviour.spellcheck-languages', 'ar,fr'],
     ['notifications.enabled coerces "0" to boolean false', 'notifications.enabled', false],
     ['notifications.sound coerces "1" to boolean true', 'notifications.sound', true],
     ['download-stickers coerces "false" to boolean false', 'media.download-stickers', false],
     ['ask-where-to-save coerces "true" to boolean true', 'media.ask-where-to-save', true],
+    ['shortcuts.global-enabled coerces "false" to boolean false', 'shortcuts.global-enabled', false],
+    ['shortcuts.global-toggle parses custom key combo', 'shortcuts.global-toggle', 'Ctrl+Alt+W'],
+    ['shortcuts.global-mute parses custom key combo', 'shortcuts.global-mute', 'Ctrl+Alt+M'],
+    ['system.force-x11 coerces "true" to boolean true', 'system.force-x11', true],
+    ['system.hardware-acceleration coerces "no" to boolean false', 'system.hardware-acceleration', false],
   ]) {
     check(scenario, reloaded.get(key), want);
   }

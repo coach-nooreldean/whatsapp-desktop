@@ -100,6 +100,17 @@ const DEFAULTS = {
   'accounts.hibernation-minutes': 30,
   /* Dynamic Hyprland / system accent color adoption */
   'view.hyprland-accent': true,
+  /* Custom user stylesheet (~/.config/whatsapp-desktop/custom.css) */
+  'view.custom-css-enabled': false,
+  /* Linux System & Display flags */
+  'system.force-x11': false,
+  'system.hardware-acceleration': true,
+  /* Global OS-wide keyboard shortcuts */
+  'shortcuts.global-enabled': true,
+  'shortcuts.global-toggle': 'Super+Alt+W',
+  'shortcuts.global-mute': 'Super+Alt+M',
+  /* Spellchecking languages */
+  'behaviour.spellcheck-languages': 'en-US,ar',
 };
 
 /* A deliberately small INI reader: sections, key = value, # and ; comments.
@@ -177,6 +188,8 @@ class Config {
       `force-font = ${values['view.force-font']}`,
       '# Whether the multi-account sidebar switcher starts collapsed.',
       `sidebar-collapsed = ${values['view.sidebar-collapsed']}`,
+      '# Whether user custom CSS (~/.config/whatsapp-desktop/custom.css) is applied.',
+      `custom-css-enabled = ${values['view.custom-css-enabled']}`,
       '',
       '[fonts]',
       '# One switch per script. On: that script is drawn in the desktop font,',
@@ -211,12 +224,27 @@ class Config {
       '# Minimising does the same. Off by default: minimise is not close.',
       `minimize-to-tray = ${values['behaviour.minimize-to-tray']}`,
       `spellcheck = ${values['behaviour.spellcheck']}`,
+      `spellcheck-languages = ${values['behaviour.spellcheck-languages'] || 'en-US,ar'}`,
       '# How the window is brought to the front when a banner is clicked, a link',
       '# is followed, or the tray is asked. auto: worked out from the session and',
       '# corrected once from what the window actually did. activate: ask the',
       '# compositor for it, which X11 always honours. remap: take the window down',
       '# and open it again, which is the only way up on some Wayland compositors.',
       `raise = ${values['behaviour.raise'] || 'auto'}`,
+      '',
+      '[shortcuts]',
+      '# Enable global system-wide shortcuts (even when WhatsApp is in background).',
+      `global-enabled = ${values['shortcuts.global-enabled']}`,
+      '# Global shortcut to summon or hide WhatsApp window.',
+      `global-toggle = ${values['shortcuts.global-toggle'] || 'Super+Alt+W'}`,
+      '# Global shortcut to mute or unmute active WhatsApp call.',
+      `global-mute = ${values['shortcuts.global-mute'] || 'Super+Alt+M'}`,
+      '',
+      '[system]',
+      '# Force X11 / XWayland fallback mode even on Wayland sessions.',
+      `force-x11 = ${values['system.force-x11']}`,
+      '# Enable VA-API hardware video decode acceleration on Linux.',
+      `hardware-acceleration = ${values['system.hardware-acceleration']}`,
       '',
       '[notifications]',
       `enabled = ${values['notifications.enabled']}`,
@@ -279,4 +307,6 @@ class Config {
   }
 }
 
-module.exports = { Config, CONFIG_PATH, CONFIG_DIR };
+const CUSTOM_CSS_PATH = path.join(CONFIG_DIR, 'custom.css');
+
+module.exports = { Config, CONFIG_PATH, CONFIG_DIR, CUSTOM_CSS_PATH, DEFAULTS };

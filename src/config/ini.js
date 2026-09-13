@@ -55,6 +55,8 @@ const format = values => {
     `custom-css-enabled = ${values['view.custom-css-enabled']}`,
     '# Adopt Hyprland, Wallust, or Pywal system accent colors dynamically.',
     `hyprland-accent = ${values['view.hyprland-accent'] !== false}`,
+    '# Interface language: ar (Arabic) or en (English).',
+    `language = ${values['view.language'] === 'en' ? 'en' : 'ar'}`,
     '',
     '[privacy]',
     '# Privacy Shield & Stealth Mode: blur chats, media, and contacts.',

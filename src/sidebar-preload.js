@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('api', {
   togglePrivacy: () => ipcRenderer.send('sidebar:toggle-privacy'),
   lockApp: () => ipcRenderer.send('sidebar:lock-app'),
   openSettings: () => ipcRenderer.send('sidebar:open-settings'),
+  openFonts: () => ipcRenderer.send('sidebar:open-fonts'),
+  openAbout: () => ipcRenderer.send('sidebar:open-about'),
   onStateChange: callback => {
     ipcRenderer.on('sidebar:state-changed', (event, state) => callback(state));
   },

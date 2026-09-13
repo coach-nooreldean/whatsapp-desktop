@@ -40,6 +40,22 @@
     </svg>
   </button>
 
+  <button class="action-btn" id="fontsBtn" title="الخطوط والمظهر / Fonts">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="4 7 4 4 20 4 20 7"/>
+      <line x1="9" y1="20" x2="15" y2="20"/>
+      <line x1="12" y1="4" x2="12" y2="20"/>
+    </svg>
+  </button>
+
+  <button class="action-btn" id="aboutBtn" title="عن الواتس اب / About WhatsApp">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  </button>
+
   <!-- Toggle / Collapse button at the bottom -->
   <button class="toggle-btn" id="toggleSidebarBtn" title="طي الشريط الجانبي (Ctrl+Alt+S)">
     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -55,11 +71,13 @@
     const privacyBtn = document.getElementById('privacyBtn');
     const lockBtn = document.getElementById('lockBtn');
     const settingsBtn = document.getElementById('settingsBtn');
+    const fontsBtn = document.getElementById('fontsBtn');
+    const aboutBtn = document.getElementById('aboutBtn');
     const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
     const pullHandle = document.getElementById('pullHandle');
     const tooltip = document.getElementById('tooltip');
 
-    let currentState = { accounts: [], activeId: 'default', theme: 'dark' };
+    let currentState = { accounts: [], activeId: 'default', theme: 'dark', language: 'ar' };
     let isCollapsed = false;
 
     function getInitials(name) {
@@ -79,17 +97,40 @@
     function render(state) {
       if (!state) return;
       currentState = state;
+      const isAr = state.language !== 'en';
+      document.documentElement.lang = isAr ? 'ar' : 'en';
       document.documentElement.setAttribute('data-theme', state.theme || 'dark');
       if (typeof state.collapsed === 'boolean') {
         setCollapsedUI(state.collapsed);
       }
+
+      // Localize tooltips based on selected language
+      if (addAccountBtn) {
+        addAccountBtn.title = isAr ? 'إضافة حساب جديد (Ctrl+Alt+A)' : 'Add New Account (Ctrl+Alt+A)';
+      }
       if (privacyBtn) {
+        privacyBtn.title = isAr ? 'درع الخصوصية / تمويه المحادثات (Ctrl+Alt+P)' : 'Privacy Shield / Stealth Blur (Ctrl+Alt+P)';
         privacyBtn.classList.toggle('active', !!state.privacyActive);
       }
       if (lockBtn) {
-        lockBtn.title = state.hasPasscode
-          ? 'قفل التطبيق / Lock App (Ctrl+Alt+L)'
-          : 'تعيين رمز مرور لقفل التطبيق / Set App Passcode (Ctrl+Alt+L)';
+        lockBtn.title = isAr
+          ? (state.hasPasscode ? 'قفل التطبيق (Ctrl+Alt+L)' : 'تعيين رمز مرور لقفل التطبيق (Ctrl+Alt+L)')
+          : (state.hasPasscode ? 'Lock App (Ctrl+Alt+L)' : 'Set App Passcode (Ctrl+Alt+L)');
+      }
+      if (settingsBtn) {
+        settingsBtn.title = isAr ? 'الإعدادات (Ctrl+,)' : 'Settings (Ctrl+,)';
+      }
+      if (fontsBtn) {
+        fontsBtn.title = isAr ? 'الخطوط والمظهر' : 'Fonts & Appearance';
+      }
+      if (aboutBtn) {
+        aboutBtn.title = isAr ? 'عن الواتس اب' : 'About WhatsApp';
+      }
+      if (toggleSidebarBtn) {
+        toggleSidebarBtn.title = isAr ? 'طي الشريط الجانبي (Ctrl+Alt+S)' : 'Collapse Sidebar (Ctrl+Alt+S)';
+      }
+      if (pullHandle) {
+        pullHandle.title = isAr ? 'إظهار الشريط الجانبي (Ctrl+Alt+S)' : 'Expand Sidebar (Ctrl+Alt+S)';
       }
 
       accountsList.innerHTML = '';
@@ -190,6 +231,18 @@
     if (settingsBtn) {
       settingsBtn.addEventListener('click', () => {
         if (window.api && window.api.openSettings) window.api.openSettings();
+      });
+    }
+
+    if (fontsBtn) {
+      fontsBtn.addEventListener('click', () => {
+        if (window.api && window.api.openFonts) window.api.openFonts();
+      });
+    }
+
+    if (aboutBtn) {
+      aboutBtn.addEventListener('click', () => {
+        if (window.api && window.api.openAbout) window.api.openAbout();
       });
     }
 

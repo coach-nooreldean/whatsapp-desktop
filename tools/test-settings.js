@@ -183,6 +183,17 @@ const open = async (file, answer) => {
     await w.el('openCustomCssBtn').fire('click');
     await w.el('reloadCustomCssBtn').fire('click');
 
+    /* Language switching between Arabic and English */
+    await w.el('langEnBtn').fire('click');
+    assert.strictEqual(w.last('view.language'), 'en');
+    assert.ok(w.el('langEnBtn').classList.contains('active'), 'clicking langEnBtn adds active class');
+    assert.ok(!w.el('langArBtn').classList.contains('active'), 'langArBtn loses active class');
+
+    await w.el('langArBtn').fire('click');
+    assert.strictEqual(w.last('view.language'), 'ar');
+    assert.ok(w.el('langArBtn').classList.contains('active'), 'clicking langArBtn adds active class');
+    assert.ok(!w.el('langEnBtn').classList.contains('active'), 'langEnBtn loses active class');
+
     /* The theme lives here and only here: it came out of the tray menu, so this
        is the one way to it and it had better work. */
     await w.el('themeLight').fire('click');

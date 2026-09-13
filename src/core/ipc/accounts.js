@@ -22,6 +22,7 @@ function registerAccountsIpc(ctx) {
       accounts: accountsMgr.getAccounts(),
       activeId: viewManager.activeAccountId,
       theme: config.get('view.theme') || 'system',
+      language: config.get('view.language') || 'ar',
       collapsed: viewManager.sidebarCollapsed,
       privacyActive: privacyMgr.isBlurred(),
       hasPasscode: lockMgr ? lockMgr.hasPasscode() : false,
@@ -33,6 +34,16 @@ function registerAccountsIpc(ctx) {
   ipcMain.on('sidebar:open-settings', () => {
     if (dialogManager && dialogManager.openSettings) {
       dialogManager.openSettings();
+    }
+  });
+  ipcMain.on('sidebar:open-fonts', () => {
+    if (dialogManager && dialogManager.openFonts) {
+      dialogManager.openFonts();
+    }
+  });
+  ipcMain.on('sidebar:open-about', () => {
+    if (dialogManager && dialogManager.openAbout) {
+      dialogManager.openAbout();
     }
   });
   ipcMain.on('sidebar:switch-account', (event, id) => viewManager.switchToAccount(id, ctx.viewHandlers));

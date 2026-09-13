@@ -73,6 +73,8 @@ function createSettingsHandler(options) {
       updateZoom(viewMgr, value);
     } else if (key === 'view.theme') {
       updateTheme({ paletteController, viewMgr, styleMgr, dialogMgr }, value);
+    } else if (key === 'view.language') {
+      if (viewMgr && viewMgr.notifySidebarState) viewMgr.notifySidebarState();
     } else if (key === 'view.hyprland-accent' || key === 'view.font-size' || key === 'view.custom-css-enabled') {
       styleMgr.applyStyle();
     } else if (key.startsWith('privacy.')) {

@@ -20,6 +20,7 @@ const DEFAULTS = {
   'view.zoom': 1.0,
   'view.force-font': true, // draw the page in one family, like a browser told to ignore page fonts
   'view.sidebar-collapsed': false, // whether the multi-account sidebar is collapsed
+  'view.language': 'ar', // 'ar' (Arabic) or 'en' (English)
 
   /* A font per script, and a switch per script to say whether the desktop's own
      is being followed. */

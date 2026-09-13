@@ -15,9 +15,9 @@
       <svg viewBox="0 0 24 24">
         <path d="M12.004 2c-5.523 0-10 4.477-10 10 0 1.766.458 3.424 1.259 4.871L2 22l5.304-1.233A9.957 9.957 0 0 0 12.004 22c5.523 0 10-4.477 10-10s-4.477-10-10-10zm0 18.2a8.163 8.163 0 0 1-4.168-1.139l-.299-.178-3.093.719.734-2.996-.195-.312A8.156 8.156 0 0 1 3.804 12c0-4.521 3.682-8.2 8.2-8.2 4.522 0 8.2 3.679 8.2 8.2 0 4.521-3.678 8.2-8.2 8.2z"/>
       </svg>
-      <span>WhatsApp Settings</span>
+      <span data-i18n="app_title">WhatsApp Settings</span>
     </div>
-    <button class="close-btn" id="closeBtn" title="Close">
+    <button class="close-btn" id="closeBtn" title="Close" data-i18n-title="header_close">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -27,66 +27,87 @@
 
   <div class="container">
 
+    <!-- Language Selection Section -->
+    <div class="section">
+      <div class="section-title" data-i18n="section_language">Interface Language / لغة الواجهة</div>
+      <div class="card">
+        <div class="row">
+          <div class="row-info">
+            <div class="row-title" data-i18n="lang_title">Language</div>
+            <div class="row-desc" data-i18n="lang_desc">Switch between Arabic and English for the entire application interface</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="theme-option active" id="langArBtn" style="padding: 6px 16px; font-size: 13px; font-weight: 600; min-width: 90px; height: 36px; cursor: pointer;">
+              <span>العربية</span>
+            </button>
+            <button class="theme-option" id="langEnBtn" style="padding: 6px 16px; font-size: 13px; font-weight: 600; min-width: 90px; height: 36px; cursor: pointer;">
+              <span>English</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Theme Section. This is where the theme lives, and the only place it
          does: it was in the tray menu as well, two ways to the same three
          buttons, and the one in the menu came back out. -->
     <div class="section">
-      <div class="section-title">Theme</div>
+      <div class="section-title" data-i18n="section_theme">Theme</div>
       <div class="card">
         <div class="theme-grid">
           <button class="theme-option" data-theme="system" id="themeSystem">
             <svg viewBox="0 0 24 24">
               <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 2v1h12v-1l-1-2h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/>
             </svg>
-            <span>System</span>
+            <span data-i18n="theme_system">System</span>
           </button>
           <button class="theme-option active" data-theme="dark" id="themeDark">
             <svg viewBox="0 0 24 24">
               <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-5.4-5.4c0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/>
             </svg>
-            <span>Dark</span>
+            <span data-i18n="theme_dark">Dark</span>
           </button>
           <button class="theme-option" data-theme="light" id="themeLight">
             <svg viewBox="0 0 24 24">
               <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/>
             </svg>
-            <span>Light</span>
+            <span data-i18n="theme_light">Light</span>
           </button>
           <button class="theme-option" data-theme="oled" id="themeOled">
             <svg viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
             </svg>
-            <span>OLED</span>
+            <span data-i18n="theme_oled">OLED</span>
           </button>
           <button class="theme-option" data-theme="nord" id="themeNord">
             <svg viewBox="0 0 24 24">
               <path d="M12 3L3 19h18L12 3zm0 4.5l5 9H7l5-9z"/>
             </svg>
-            <span>Nord</span>
+            <span data-i18n="theme_nord">Nord</span>
           </button>
           <button class="theme-option" data-theme="catppuccin" id="themeCatppuccin">
             <svg viewBox="0 0 24 24">
               <circle cx="9" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2" fill="none" stroke="currentColor" stroke-width="1.8"/>
             </svg>
-            <span>Catppuccin</span>
+            <span data-i18n="theme_catppuccin">Catppuccin</span>
           </button>
           <button class="theme-option" data-theme="dracula" id="themeDracula">
             <svg viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.55.06-1.09.17-1.61 2.37 1.01 4.54.49 5.83-.8 1.45-1.45 1.81-3.66.9-6.02C10.59 4.06 11.28 4 12 4c4.41 0 8 3.59 8 8s-3.59 8-8 8z"/>
             </svg>
-            <span>Dracula</span>
+            <span data-i18n="theme_dracula">Dracula</span>
           </button>
           <button class="theme-option" data-theme="tokyonight" id="themeTokyonight">
             <svg viewBox="0 0 24 24">
               <path d="M12 3l1.8 5.5h5.8l-4.7 3.4 1.8 5.5-4.7-3.4-4.7 3.4 1.8-5.5-4.7-3.4h5.8z"/>
             </svg>
-            <span>Tokyo Night</span>
+            <span data-i18n="theme_tokyonight">Tokyo Night</span>
           </button>
         </div>
         <div class="row" style="border-top: 1px solid var(--border-color); padding: 12px 16px;">
           <div class="row-info">
-            <div class="row-title">Adopt Hyprland / System Colors</div>
-            <div class="row-desc">Harmonize accents with Pywal, Wallust, or Hyprland theme</div>
+            <div class="row-title" data-i18n="hyprland_title">Adopt Hyprland / System Colors</div>
+            <div class="row-desc" data-i18n="hyprland_desc">Harmonize accents with Pywal, Wallust, or Hyprland theme</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="hyprlandAccentToggle" checked>
@@ -98,12 +119,12 @@
 
     <!-- Startup & System -->
     <div class="section">
-      <div class="section-title">Startup & Tray</div>
+      <div class="section-title" data-i18n="section_startup">Startup & Tray</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Start at Login</div>
-            <div class="row-desc">Launch WhatsApp automatically in the background at startup</div>
+            <div class="row-title" data-i18n="autostart_title">Start at Login</div>
+            <div class="row-desc" data-i18n="autostart_desc">Launch WhatsApp automatically in the background at startup</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="autostartToggle" checked>
@@ -113,8 +134,8 @@
 
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Close to Tray</div>
-            <div class="row-desc">Closing the window leaves WhatsApp running in the tray</div>
+            <div class="row-title" data-i18n="close_tray_title">Close to Tray</div>
+            <div class="row-desc" data-i18n="close_tray_desc">Closing the window leaves WhatsApp running in the tray</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="closeToTrayToggle" checked>
@@ -124,8 +145,8 @@
 
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Minimize to Tray</div>
-            <div class="row-desc">Minimizing the window hides it to the tray</div>
+            <div class="row-title" data-i18n="min_tray_title">Minimize to Tray</div>
+            <div class="row-desc" data-i18n="min_tray_desc">Minimizing the window hides it to the tray</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="minimizeToTrayToggle">
@@ -137,12 +158,12 @@
 
     <!-- Notifications & Sounds -->
     <div class="section">
-      <div class="section-title">Notifications & Sounds</div>
+      <div class="section-title" data-i18n="section_notif">Notifications & Sounds</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Desktop Notifications</div>
-            <div class="row-desc">Show notification banners with sender picture and message</div>
+            <div class="row-title" data-i18n="notif_title">Desktop Notifications</div>
+            <div class="row-desc" data-i18n="notif_desc">Show notification banners with sender picture and message</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="notifyToggle" checked>
@@ -152,8 +173,8 @@
 
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Notification Sound</div>
-            <div class="row-desc">Play tone when a new message arrives</div>
+            <div class="row-title" data-i18n="notif_sound_title">Notification Sound</div>
+            <div class="row-desc" data-i18n="notif_sound_desc">Play tone when a new message arrives</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="notifySoundToggle" checked>
@@ -163,8 +184,8 @@
 
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Outgoing Message Tone</div>
-            <div class="row-desc">Play sound when you send a message</div>
+            <div class="row-title" data-i18n="outgoing_sound_title">Outgoing Message Tone</div>
+            <div class="row-desc" data-i18n="outgoing_sound_desc">Play sound when you send a message</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="outgoingSoundToggle">
@@ -174,19 +195,14 @@
       </div>
     </div>
 
-    <!-- Display. One knob: the whole interface, the way Ctrl +/- moves it.
-         There was a second one here, "Chat Font Size", which scaled the words
-         in a conversation on their own. It came out in favour of the sizes in
-         the Fonts window, which are per script and apply everywhere -- one
-         stray percentage that belonged to neither script was a knob nobody
-         could place beside the other two. -->
+    <!-- Display -->
     <div class="section">
-      <div class="section-title">Display</div>
+      <div class="section-title" data-i18n="section_display">Display</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Zoom Level</div>
-            <div class="row-desc">Interface scaling (Ctrl + / - / 0)</div>
+            <div class="row-title" data-i18n="zoom_title">Zoom Level</div>
+            <div class="row-desc" data-i18n="zoom_desc">Interface scaling (Ctrl + / - / 0)</div>
           </div>
           <div class="stepper">
             <button class="stepper-btn" id="zoomOut">-</button>
@@ -199,12 +215,12 @@
 
     <!-- Privacy Shield & Stealth -->
     <div class="section">
-      <div class="section-title">Privacy Shield & Stealth / درع الخصوصية</div>
+      <div class="section-title" data-i18n="section_privacy">Privacy Shield & Stealth / درع الخصوصية</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Stealth Mode (Ctrl+Alt+P)</div>
-            <div class="row-desc">Blur messages, media, and contacts to prevent shoulder surfing</div>
+            <div class="row-title" data-i18n="stealth_title">Stealth Mode (Ctrl+Alt+P)</div>
+            <div class="row-desc" data-i18n="stealth_desc">Blur messages, media, and contacts to prevent shoulder surfing</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="privacyStealthToggle">
@@ -213,8 +229,8 @@
         </div>
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Auto-Blur on Focus Loss</div>
-            <div class="row-desc">Automatically blur when WhatsApp is in the background or loses focus</div>
+            <div class="row-title" data-i18n="auto_blur_title">Auto-Blur on Focus Loss</div>
+            <div class="row-desc" data-i18n="auto_blur_desc">Automatically blur when WhatsApp is in the background or loses focus</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="privacyAutoBlurToggle" checked>
@@ -223,8 +239,8 @@
         </div>
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Hover to Reveal</div>
-            <div class="row-desc">Temporarily unblur individual message bubbles and images when hovering</div>
+            <div class="row-title" data-i18n="hover_reveal_title">Hover to Reveal</div>
+            <div class="row-desc" data-i18n="hover_reveal_desc">Temporarily unblur individual message bubbles and images when hovering</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="privacyHoverRevealToggle" checked>
@@ -233,8 +249,8 @@
         </div>
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Blur Contact Names</div>
-            <div class="row-desc">Also blur chat list names and phone numbers</div>
+            <div class="row-title" data-i18n="blur_contacts_title">Blur Contact Names</div>
+            <div class="row-desc" data-i18n="blur_contacts_desc">Also blur chat list names and phone numbers</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="privacyBlurContactsToggle">
@@ -246,11 +262,11 @@
 
     <!-- App Lock & Passcode -->
     <div class="section">
-      <div class="section-title">App Lock / قفل التطبيق (Ctrl+Alt+L)</div>
+      <div class="section-title" data-i18n="section_lock">App Lock / قفل التطبيق (Ctrl+Alt+L)</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Passcode Protection</div>
+            <div class="row-title" data-i18n="lock_auto_title">Passcode Protection</div>
             <div class="row-desc" id="lockStatusDesc">Protect WhatsApp with a PIN or passcode</div>
           </div>
           <label class="switch">
@@ -260,8 +276,8 @@
         </div>
         <div class="row" id="lockTimeoutRow">
           <div class="row-info">
-            <div class="row-title">Auto-Lock Inactivity Timeout</div>
-            <div class="row-desc">Lock automatically after minutes of inactivity</div>
+            <div class="row-title" data-i18n="lock_timeout_title">Auto-Lock Inactivity Timeout</div>
+            <div class="row-desc" data-i18n="lock_timeout_desc">Lock automatically after minutes of inactivity</div>
           </div>
           <select id="lockTimeoutSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
             <option value="5">5 minutes</option>
@@ -273,8 +289,8 @@
         </div>
         <div class="row" id="lockSystemLockRow">
           <div class="row-info">
-            <div class="row-title">Lock on Desktop Screen Lock / Suspend</div>
-            <div class="row-desc">Automatically lock WhatsApp when the system session locks or laptop suspends</div>
+            <div class="row-title" data-i18n="lock_system_title">Lock on Desktop Screen Lock / Suspend</div>
+            <div class="row-desc" data-i18n="lock_system_desc">Automatically lock WhatsApp when the system session locks or laptop suspends</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="lockOnSystemLockToggle" checked>
@@ -282,11 +298,11 @@
           </label>
         </div>
         <div class="row" id="lockPasscodeSetupRow" style="flex-direction: column; align-items: stretch; gap: 8px;">
-          <div style="font-size: 13px; font-weight: 500;">Set or Change Passcode:</div>
+          <div style="font-size: 13px; font-weight: 500;" data-i18n="lock_set_passcode">Set or Change Passcode:</div>
           <div style="display: flex; gap: 8px;">
-            <input type="password" id="settingsPinInput" placeholder="New PIN / Passcode (min 4 chars)" style="flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
-            <button id="savePinBtn" class="stepper-btn" style="width: auto; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">Save PIN</button>
-            <button id="removePinBtn" class="stepper-btn" style="width: auto; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13px; cursor: pointer; display: none;">Remove</button>
+            <input type="password" id="settingsPinInput" placeholder="New PIN / Passcode (min 4 chars)" data-i18n-placeholder="lock_placeholder" style="flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
+            <button id="savePinBtn" class="stepper-btn" data-i18n="lock_save_btn" style="width: auto; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">Save PIN</button>
+            <button id="removePinBtn" class="stepper-btn" data-i18n="lock_remove_btn" style="width: auto; height: 34px; padding: 0 14px; border-radius: 6px; font-size: 13px; cursor: pointer; display: none;">Remove</button>
           </div>
           <div id="pinFeedback" style="font-size: 12px; min-height: 16px;"></div>
         </div>
@@ -295,33 +311,33 @@
 
     <!-- Accounts Section -->
     <div class="section">
-      <div class="section-title">Accounts / تعدد الحسابات</div>
+      <div class="section-title" data-i18n="section_accounts">Accounts / تعدد الحسابات</div>
       <div class="card">
         <div id="settingsAccountsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
         <div class="row" style="margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border-color);">
           <div class="row-info">
-            <div class="row-title">Add WhatsApp Account</div>
-            <div class="row-desc">Add another isolated WhatsApp Web account to the sidebar</div>
+            <div class="row-title" data-i18n="acc_add_title">Add WhatsApp Account</div>
+            <div class="row-desc" data-i18n="acc_add_desc">Add another isolated WhatsApp Web account to the sidebar</div>
           </div>
-          <button class="stepper-btn" id="settingsAddAccountBtn" style="padding: 6px 14px; font-size: 13px; width: auto; height: 32px; border-radius: 6px; cursor: pointer;">+ Add</button>
+          <button class="stepper-btn" id="settingsAddAccountBtn" data-i18n="acc_add_btn" style="padding: 6px 14px; font-size: 13px; width: auto; height: 32px; border-radius: 6px; cursor: pointer;">+ Add</button>
         </div>
 
         <!-- Inline Add Form -->
         <div id="settingsAddForm" style="display: none; margin-top: 12px; padding: 14px; background: rgba(0,0,0,0.18); border-radius: 8px; border: 1px solid var(--border-color);">
-          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);">إضافة حساب جديد / Add New Account</div>
-          <input type="text" id="settingsAccountNameInput" placeholder="اسم الحساب (مثال: العمل / Work)" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; margin-bottom: 10px; outline: none;">
-          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">لون الحساب / Account Color:</div>
+          <div style="font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-primary);" data-i18n="acc_form_title">إضافة حساب جديد / Add New Account</div>
+          <input type="text" id="settingsAccountNameInput" placeholder="اسم الحساب (مثال: العمل / Work)" data-i18n-placeholder="acc_name_placeholder" style="width: 100%; box-sizing: border-box; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; margin-bottom: 10px; outline: none;">
+          <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;" data-i18n="acc_color_label">لون الحساب / Account Color:</div>
           <div id="settingsColorPicker" style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;"></div>
           <div style="display: flex; justify-content: flex-end; gap: 8px;">
-            <button id="settingsCancelAddBtn" style="padding: 6px 12px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; cursor: pointer; font-size: 12px;">إلغاء / Cancel</button>
-            <button id="settingsSaveAddBtn" style="padding: 6px 14px; background: #00a884; border: none; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">إضافة / Add</button>
+            <button id="settingsCancelAddBtn" data-i18n="cancel_btn" style="padding: 6px 12px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; cursor: pointer; font-size: 12px;">إلغاء / Cancel</button>
+            <button id="settingsSaveAddBtn" data-i18n="acc_save_btn" style="padding: 6px 14px; background: #00a884; border: none; color: #ffffff; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">إضافة / Add</button>
           </div>
         </div>
 
         <div class="row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
           <div class="row-info">
-            <div class="row-title">Background Account Hibernation</div>
-            <div class="row-desc">Put inactive background accounts into low-power sleep mode to save memory</div>
+            <div class="row-title" data-i18n="acc_hibernation_title">Background Account Hibernation</div>
+            <div class="row-desc" data-i18n="acc_hibernation_desc">Put inactive background accounts into low-power sleep mode to save memory</div>
           </div>
           <select id="hibernationSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; outline: none;">
             <option value="15">15 minutes</option>
@@ -335,12 +351,12 @@
 
     <!-- Custom User Stylesheet -->
     <div class="section">
-      <div class="section-title">Custom Stylesheet / مظهر مخصص (custom.css)</div>
+      <div class="section-title" data-i18n="section_custom_css">Custom Stylesheet / مظهر مخصص (custom.css)</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Enable Custom CSS</div>
-            <div class="row-desc">Inject rules from ~/.config/whatsapp-desktop/custom.css</div>
+            <div class="row-title" data-i18n="custom_css_title">Enable Custom CSS</div>
+            <div class="row-desc" data-i18n="custom_css_desc">Inject rules from ~/.config/whatsapp-desktop/custom.css</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="customCssToggle">
@@ -348,8 +364,8 @@
           </label>
         </div>
         <div class="row" style="border-top: 1px solid var(--border-color); padding-top: 12px; gap: 8px;">
-          <button class="btn-action" id="openCustomCssBtn">Open in Text Editor</button>
-          <button class="btn-action" id="reloadCustomCssBtn">Reload CSS</button>
+          <button class="btn-action" id="openCustomCssBtn" data-i18n="custom_css_open">Open in Text Editor</button>
+          <button class="btn-action" id="reloadCustomCssBtn" data-i18n="custom_css_reload">Reload CSS</button>
           <div id="customCssFeedback" style="font-size: 12px; color: var(--text-muted); align-self: center; margin-left: 8px;"></div>
         </div>
       </div>
@@ -357,12 +373,12 @@
 
     <!-- Global OS Shortcuts -->
     <div class="section">
-      <div class="section-title">Global Shortcuts / اختصارات النظام العامة</div>
+      <div class="section-title" data-i18n="section_shortcuts">Global Shortcuts / اختصارات النظام العامة</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Enable Global Shortcuts</div>
-            <div class="row-desc">Work across desktop session even when running in background</div>
+            <div class="row-title" data-i18n="shortcuts_title">Enable Global Shortcuts</div>
+            <div class="row-desc" data-i18n="shortcuts_desc">Work across desktop session even when running in background</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="globalShortcutsToggle" checked>
@@ -371,15 +387,15 @@
         </div>
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Summon / Hide Window</div>
-            <div class="row-desc">Bring WhatsApp to front or hide to tray</div>
+            <div class="row-title" data-i18n="shortcut_toggle_title">Summon / Hide Window</div>
+            <div class="row-desc" data-i18n="shortcut_toggle_desc">Bring WhatsApp to front or hide to tray</div>
           </div>
           <input type="text" id="globalToggleShortcutInput" value="Super+Alt+W" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 140px; text-align: center; outline: none;">
         </div>
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Mute / Unmute Active Call</div>
-            <div class="row-desc">Toggle microphone during voice/video call</div>
+            <div class="row-title" data-i18n="shortcut_mute_title">Mute / Unmute Active Call</div>
+            <div class="row-desc" data-i18n="shortcut_mute_desc">Toggle microphone during voice/video call</div>
           </div>
           <input type="text" id="globalMuteShortcutInput" value="Super+Alt+M" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 140px; text-align: center; outline: none;">
         </div>
@@ -388,12 +404,12 @@
 
     <!-- Spellcheck & Languages -->
     <div class="section">
-      <div class="section-title">Spellcheck & Languages / التدقيق الإملائي</div>
+      <div class="section-title" data-i18n="section_spellcheck">Spellcheck & Languages / التدقيق الإملائي</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Spellcheck</div>
-            <div class="row-desc">Highlight misspellings and provide native corrections</div>
+            <div class="row-title" data-i18n="spellcheck_title">Spellcheck</div>
+            <div class="row-desc" data-i18n="spellcheck_desc">Highlight misspellings and provide native corrections</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="spellcheckToggle" checked>
@@ -401,7 +417,7 @@
           </label>
         </div>
         <div class="row" style="flex-direction: column; align-items: stretch; border-top: 1px solid var(--border-color); padding-top: 12px;">
-          <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;">Active Dictionaries (Click to toggle):</div>
+          <div style="font-size: 13px; font-weight: 500; margin-bottom: 4px;" data-i18n="spellcheck_dict_label">Active Dictionaries (Click to toggle):</div>
           <div class="pill-group" id="spellcheckPills">
             <div class="pill-option active" data-lang="ar">العربية (Arabic)</div>
             <div class="pill-option active" data-lang="en-US">English (US)</div>
@@ -416,26 +432,26 @@
 
     <!-- Storage & Maintenance -->
     <div class="section">
-      <div class="section-title">Storage & Maintenance / التخزين والبيانات</div>
+      <div class="section-title" data-i18n="section_storage">Storage & Maintenance / التخزين والبيانات</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Disk & Media Cache</div>
+            <div class="row-title" data-i18n="cache_title">Disk & Media Cache</div>
             <div class="row-desc" id="cacheSizeDesc">Computing cache size...</div>
           </div>
-          <button class="btn-action" id="clearCacheBtn">Clear Cache</button>
+          <button class="btn-action" id="clearCacheBtn" data-i18n="cache_clear_btn">Clear Cache</button>
         </div>
       </div>
     </div>
 
     <!-- System & Display Server -->
     <div class="section">
-      <div class="section-title">System & Display / خادم العرض والعتاد</div>
+      <div class="section-title" data-i18n="section_system">System & Display / خادم العرض والعتاد</div>
       <div class="card">
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Force X11 / XWayland Fallback</div>
-            <div class="row-desc">Disable native Wayland platform hint (requires restart)</div>
+            <div class="row-title" data-i18n="force_x11_title">Force X11 / XWayland Fallback</div>
+            <div class="row-desc" data-i18n="force_x11_desc">Disable native Wayland platform hint (requires restart)</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="forceX11Toggle">
@@ -444,8 +460,8 @@
         </div>
         <div class="row">
           <div class="row-info">
-            <div class="row-title">Hardware Video Acceleration (VA-API)</div>
-            <div class="row-desc">Use GPU video decoding on Linux (requires restart)</div>
+            <div class="row-title" data-i18n="hw_accel_title">Hardware Video Acceleration (VA-API)</div>
+            <div class="row-desc" data-i18n="hw_accel_desc">Use GPU video decoding on Linux (requires restart)</div>
           </div>
           <label class="switch">
             <input type="checkbox" id="hardwareAccelToggle" checked>
@@ -456,11 +472,11 @@
     </div>
 
     <div class="restart-bar" id="restartBar" hidden style="margin-top: 14px;">
-      <span>Restart WhatsApp to finish applying system changes.</span>
-      <button id="restartBtn">Restart</button>
+      <span data-i18n="restart_bar_msg">Restart WhatsApp to finish applying system changes.</span>
+      <button id="restartBtn" data-i18n="restart_btn">Restart</button>
     </div>
 
-    <div class="footer-note">
+    <div class="footer-note" data-i18n="footer_note">
       Changes apply immediately and save to ~/.config/whatsapp-desktop/
     </div>
 
@@ -477,6 +493,9 @@
       dracula: document.getElementById('themeDracula'),
       tokyonight: document.getElementById('themeTokyonight'),
     };
+
+    const langArBtn = document.getElementById('langArBtn');
+    const langEnBtn = document.getElementById('langEnBtn');
 
     const hyprlandAccentToggle = document.getElementById('hyprlandAccentToggle');
     const autostartToggle = document.getElementById('autostartToggle');
@@ -537,6 +556,272 @@
     // Hibernation
     const hibernationSelect = document.getElementById('hibernationSelect');
 
+    const I18N = {
+      ar: {
+        app_title: 'إعدادات واتساب',
+        header_close: 'إغلاق',
+        section_language: 'لغة الواجهة / Interface Language',
+        lang_title: 'لغة التطبيق',
+        lang_desc: 'التبديل بين اللغتين العربية والإنجليزية لكافة واجهات التطبيق',
+        section_theme: 'المظهر',
+        theme_system: 'النظام',
+        theme_dark: 'داكن',
+        theme_light: 'فاتح',
+        theme_oled: 'OLED أسود فاحم',
+        theme_nord: 'Nord',
+        theme_catppuccin: 'Catppuccin',
+        theme_dracula: 'Dracula',
+        theme_tokyonight: 'Tokyo Night',
+        hyprland_title: 'اعتماد ألوان Hyprland / النظام',
+        hyprland_desc: 'مواءمة ألوان التمييز تلقائياً مع Pywal و Wallust و Hyprland',
+        section_startup: 'بدء التشغيل وشريط النظام',
+        autostart_title: 'التشغيل التلقائي عند بدء النظام',
+        autostart_desc: 'تشغيل واتساب في الخلفية تلقائياً عند تسجيل الدخول',
+        close_tray_title: 'إغلاق إلى شريط المهام (Tray)',
+        close_tray_desc: 'إغلاق النافذة يترك التطبيق قيد التشغيل في شريط النظام',
+        min_tray_title: 'تصغير إلى شريط المهام',
+        min_tray_desc: 'تصغير النافذة يخفيها إلى شريط المهام',
+        section_notif: 'الإشعارات والأصوات',
+        notif_title: 'إشعارات سطح المكتب',
+        notif_desc: 'عرض إشعارات منبثقة مع صورة المرسل ومعاينة الرسالة',
+        notif_sound_title: 'صوت التنبيه للرسائل الواردة',
+        notif_sound_desc: 'تشغيل نغمة عند وصول رسالة جديدة',
+        outgoing_sound_title: 'صوت إرسال الرسائل',
+        outgoing_sound_desc: 'تشغيل نغمة فور إرسال رسالتك',
+        section_display: 'العرض ومستوى التكبير',
+        zoom_title: 'مستوى التكبير (Zoom)',
+        zoom_desc: 'تكبير وتصغير الواجهة (Ctrl + / - / 0)',
+        section_privacy: 'درع الخصوصية والتمويه (Privacy Shield)',
+        stealth_title: 'وضع التخفي (Ctrl+Alt+P)',
+        stealth_desc: 'تمويه وقفل الرسائل والوسائط والأسماء لمنع التلصص',
+        auto_blur_title: 'تمويه تلقائي عند فقدان التركيز',
+        auto_blur_desc: 'تطبيق التمويه فور تصغير واتساب أو الانتقال لنافذة أخرى',
+        hover_reveal_title: 'كشف التمويه عند تمرير الفأرة',
+        hover_reveal_desc: 'إظهار فقاعة الرسالة أو الصورة مؤقتاً عند الوقوف عليها بالفأرة',
+        blur_contacts_title: 'تمويه أسماء جهات الاتصال',
+        blur_contacts_desc: 'تمويه أسماء الدردشات وأرقام الهواتف في القائمة الجانبية',
+        section_lock: 'قفل التطبيق برمز مرور (Ctrl+Alt+L)',
+        lock_auto_title: 'الحماية برمز المرور (PIN)',
+        lock_timeout_title: 'مهلة القفل التلقائي عند عدم النشاط',
+        lock_timeout_desc: 'قفل التطبيق تلقائياً بعد دقائق محددة من الخمول',
+        lock_system_title: 'قفل التطبيق عند قفل شاشة النظام / السكون',
+        lock_system_desc: 'قفل واتساب تلقائياً عند إقفال سطح المكتب أو سكون الحاسوب',
+        lock_set_passcode: 'تعيين أو تغيير رمز المرور:',
+        lock_placeholder: 'رمز مرور جديد (4 خانات على الأقل)',
+        lock_save_btn: 'حفظ الرمز',
+        lock_remove_btn: 'إزالة الرمز',
+        section_accounts: 'تعدد الحسابات (Multi-Account)',
+        acc_add_title: 'إضافة حساب واتساب جديد',
+        acc_add_desc: 'تشغيل حساب واتساب ويب مستقل في الشريط الجانبي',
+        acc_add_btn: '+ إضافة',
+        acc_form_title: 'إضافة حساب جديد',
+        acc_name_placeholder: 'اسم الحساب (مثال: العمل، الشخصي)',
+        acc_color_label: 'لون تمييز الحساب:',
+        cancel_btn: 'إلغاء',
+        acc_save_btn: 'إضافة',
+        acc_hibernation_title: 'إسبات الحسابات الخلفية (Hibernation)',
+        acc_hibernation_desc: 'وضع الحسابات غير النشطة في وضع السكون لتوفير استهلاك الذاكرة',
+        section_custom_css: 'مظهر مخصص للمستخدم (custom.css)',
+        custom_css_title: 'تفعيل ملف التنسيق المخصص',
+        custom_css_desc: 'تطبيق قواعد CSS من ~/.config/whatsapp-desktop/custom.css',
+        custom_css_open: 'فتح في محرر النصوص',
+        custom_css_reload: 'إعادة تحميل المظهر',
+        section_shortcuts: 'اختصارات النظام العامة (Global Shortcuts)',
+        shortcuts_title: 'تفعيل الاختصارات العامة',
+        shortcuts_desc: 'تعمل عبر كامل النظام حتى لو كان التطبيق بالخلفية',
+        shortcut_toggle_title: 'إظهار / إخفاء النافذة',
+        shortcut_toggle_desc: 'جلب واتساب للمقدمة أو تصغيره لشريط المهام',
+        shortcut_mute_title: 'كتم / إلغاء كتم المكالمة النشطة',
+        shortcut_mute_desc: 'التحكم بالمايكروفون أثناء المكالمات الصوتية والمرئية',
+        section_spellcheck: 'التدقيق الإملائي واللغات',
+        spellcheck_title: 'التدقيق الإملائي',
+        spellcheck_desc: 'تمييز الكلمات الخاطئة وتقديم تصحيحات النظام',
+        spellcheck_dict_label: 'القواميس المفعلة (اضغط للتفعيل/التعطيل):',
+        section_storage: 'التخزين وبيانات الوسائط',
+        cache_title: 'الذاكرة المؤقتة للقرص والوسائط',
+        cache_clear_btn: 'مسح التخزين المؤقت',
+        section_system: 'النظام وخادم العرض',
+        force_x11_title: 'إجبار وضع X11 / XWayland',
+        force_x11_desc: 'تعطيل وضع Wayland المباشر (يتطلب إعادة التشغيل)',
+        hw_accel_title: 'تسريع الفيديو بالعتاد (VA-API)',
+        hw_accel_desc: 'استخدام كارت الشاشة لفك ترميز الفيديو (يتطلب إعادة التشغيل)',
+        restart_bar_msg: 'أعد تشغيل واتساب لتطبيق تعديلات النظام بالكامل.',
+        restart_btn: 'إعادة التشغيل',
+        footer_note: 'تُطبق التعديلات فوراً وتُحفظ في ~/.config/whatsapp-desktop/',
+        active_account: 'الحساب النشط',
+        primary_account: ' (الأساسي)',
+        switch_account: 'انتقال',
+        remove_account: 'حذف',
+        deleting: 'جاري الحذف...',
+        cache_using: 'يستهلك ~{mb} ميجابايت من الذاكرة المؤقتة',
+        cache_fallback: 'الذاكرة المؤقتة للقرص',
+        cache_clearing: 'جاري المسح...',
+        cache_cleared: 'تم المسح بنجاح!',
+        lock_status_active: 'رمز المرور مفعل والتطبيق محمي',
+        lock_status_disabled: 'تم تعيين رمز مرور (القفل معطل حالياً)',
+        lock_status_none: 'لم يتم تعيين رمز مرور بعد (احمِ محادثاتك بـ PIN)',
+        lock_need_pin: 'يرجى إدخال رمز المرور أدناه وحفظه أولاً لتفعيل القفل',
+        lock_enabled_feedback: 'تم تفعيل قفل التطبيق',
+        lock_disabled_feedback: 'تم تعطيل قفل التطبيق',
+        pin_saved_feedback: 'تم حفظ رمز المرور بنجاح!',
+        pin_removed_feedback: 'تم إزالة رمز المرور بنجاح',
+        pin_min_length: 'يجب أن يتكون رمز المرور من 4 خانات على الأقل',
+        css_opened: 'تم فتح custom.css في محرر النصوص',
+        css_reloaded: 'تمت إعادة تحميل المظهر المخصص بنجاح!',
+        css_reload_failed: 'فشل تحميل ملف المظهر'
+      },
+      en: {
+        app_title: 'WhatsApp Settings',
+        header_close: 'Close',
+        section_language: 'Interface Language / لغة الواجهة',
+        lang_title: 'Language',
+        lang_desc: 'Switch between Arabic and English for the entire application interface',
+        section_theme: 'Theme',
+        theme_system: 'System',
+        theme_dark: 'Dark',
+        theme_light: 'Light',
+        theme_oled: 'OLED',
+        theme_nord: 'Nord',
+        theme_catppuccin: 'Catppuccin',
+        theme_dracula: 'Dracula',
+        theme_tokyonight: 'Tokyo Night',
+        hyprland_title: 'Adopt Hyprland / System Colors',
+        hyprland_desc: 'Harmonize accents with Pywal, Wallust, or Hyprland theme',
+        section_startup: 'Startup & Tray',
+        autostart_title: 'Start at Login',
+        autostart_desc: 'Launch WhatsApp automatically in the background at startup',
+        close_tray_title: 'Close to Tray',
+        close_tray_desc: 'Closing the window leaves WhatsApp running in the tray',
+        min_tray_title: 'Minimize to Tray',
+        min_tray_desc: 'Minimizing the window hides it to the tray',
+        section_notif: 'Notifications & Sounds',
+        notif_title: 'Desktop Notifications',
+        notif_desc: 'Show notification banners with sender picture and message',
+        notif_sound_title: 'Notification Sound',
+        notif_sound_desc: 'Play tone when a new message arrives',
+        outgoing_sound_title: 'Outgoing Message Tone',
+        outgoing_sound_desc: 'Play sound when you send a message',
+        section_display: 'Display',
+        zoom_title: 'Zoom Level',
+        zoom_desc: 'Interface scaling (Ctrl + / - / 0)',
+        section_privacy: 'Privacy Shield & Stealth',
+        stealth_title: 'Stealth Mode (Ctrl+Alt+P)',
+        stealth_desc: 'Blur messages, media, and contacts to prevent shoulder surfing',
+        auto_blur_title: 'Auto-Blur on Focus Loss',
+        auto_blur_desc: 'Automatically blur when WhatsApp is in the background or loses focus',
+        hover_reveal_title: 'Hover to Reveal',
+        hover_reveal_desc: 'Temporarily unblur individual message bubbles and images when hovering',
+        blur_contacts_title: 'Blur Contact Names',
+        blur_contacts_desc: 'Also blur chat list names and phone numbers',
+        section_lock: 'App Lock (Ctrl+Alt+L)',
+        lock_auto_title: 'Passcode Protection',
+        lock_timeout_title: 'Auto-Lock Inactivity Timeout',
+        lock_timeout_desc: 'Lock automatically after minutes of inactivity',
+        lock_system_title: 'Lock on Desktop Screen Lock / Suspend',
+        lock_system_desc: 'Automatically lock WhatsApp when the system session locks or laptop suspends',
+        lock_set_passcode: 'Set or Change Passcode:',
+        lock_placeholder: 'New PIN / Passcode (min 4 chars)',
+        lock_save_btn: 'Save PIN',
+        lock_remove_btn: 'Remove',
+        section_accounts: 'Accounts',
+        acc_add_title: 'Add WhatsApp Account',
+        acc_add_desc: 'Add another isolated WhatsApp Web account to the sidebar',
+        acc_add_btn: '+ Add',
+        acc_form_title: 'Add New Account',
+        acc_name_placeholder: 'Account name (e.g., Work, Personal)',
+        acc_color_label: 'Account Color:',
+        cancel_btn: 'Cancel',
+        acc_save_btn: 'Add',
+        acc_hibernation_title: 'Background Account Hibernation',
+        acc_hibernation_desc: 'Put inactive background accounts into low-power sleep mode to save memory',
+        section_custom_css: 'Custom Stylesheet (custom.css)',
+        custom_css_title: 'Enable Custom CSS',
+        custom_css_desc: 'Inject rules from ~/.config/whatsapp-desktop/custom.css',
+        custom_css_open: 'Open in Text Editor',
+        custom_css_reload: 'Reload CSS',
+        section_shortcuts: 'Global Shortcuts',
+        shortcuts_title: 'Enable Global Shortcuts',
+        shortcuts_desc: 'Work across desktop session even when running in background',
+        shortcut_toggle_title: 'Summon / Hide Window',
+        shortcut_toggle_desc: 'Bring WhatsApp to front or hide to tray',
+        shortcut_mute_title: 'Mute / Unmute Active Call',
+        shortcut_mute_desc: 'Toggle microphone during voice/video call',
+        section_spellcheck: 'Spellcheck & Languages',
+        spellcheck_title: 'Spellcheck',
+        spellcheck_desc: 'Highlight misspellings and provide native corrections',
+        spellcheck_dict_label: 'Active Dictionaries (Click to toggle):',
+        section_storage: 'Storage & Maintenance',
+        cache_title: 'Disk & Media Cache',
+        cache_clear_btn: 'Clear Cache',
+        section_system: 'System & Display',
+        force_x11_title: 'Force X11 / XWayland Fallback',
+        force_x11_desc: 'Disable native Wayland platform hint (requires restart)',
+        hw_accel_title: 'Hardware Video Acceleration (VA-API)',
+        hw_accel_desc: 'Use GPU video decoding on Linux (requires restart)',
+        restart_bar_msg: 'Restart WhatsApp to finish applying system changes.',
+        restart_btn: 'Restart',
+        footer_note: 'Changes apply immediately and save to ~/.config/whatsapp-desktop/',
+        active_account: 'Active',
+        primary_account: ' (Primary)',
+        switch_account: 'Switch',
+        remove_account: 'Remove',
+        deleting: 'Deleting...',
+        cache_using: 'Using ~{mb} MB of temporary disk and media cache',
+        cache_fallback: 'Temporary disk cache',
+        cache_clearing: 'Clearing...',
+        cache_cleared: 'Cleared!',
+        lock_status_active: 'Passcode protection is active',
+        lock_status_disabled: 'Passcode set (lock currently disabled)',
+        lock_status_none: 'Protect WhatsApp with a PIN or passcode',
+        lock_need_pin: 'Please set and save a passcode below first to enable lock',
+        lock_enabled_feedback: 'App lock enabled',
+        lock_disabled_feedback: 'App lock disabled',
+        pin_saved_feedback: 'Passcode saved successfully!',
+        pin_removed_feedback: 'Passcode removed successfully',
+        pin_min_length: 'Passcode must be at least 4 characters',
+        css_opened: 'Opened custom.css in editor',
+        css_reloaded: 'Custom CSS reloaded!',
+        css_reload_failed: 'Failed to reload CSS'
+      }
+    };
+
+    let currentLang = 'ar';
+
+    function applyLanguage(lang) {
+      currentLang = (lang === 'en') ? 'en' : 'ar';
+      const dict = I18N[currentLang] || I18N.ar;
+
+      if (document.documentElement) {
+        document.documentElement.lang = currentLang;
+        document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+      }
+
+      if (langArBtn && langEnBtn) {
+        if (currentLang === 'ar') {
+          langArBtn.classList.add('active');
+          langEnBtn.classList.remove('active');
+        } else {
+          langEnBtn.classList.add('active');
+          langArBtn.classList.remove('active');
+        }
+      }
+
+      if (typeof document.querySelectorAll === 'function') {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute ? el.getAttribute('data-i18n') : null;
+          if (key && dict[key]) el.textContent = dict[key];
+        });
+        document.querySelectorAll('[data-i18n-title]').forEach(el => {
+          const key = el.getAttribute ? el.getAttribute('data-i18n-title') : null;
+          if (key && dict[key]) el.setAttribute('title', dict[key]);
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+          const key = el.getAttribute ? el.getAttribute('data-i18n-placeholder') : null;
+          if (key && dict[key]) el.setAttribute('placeholder', dict[key]);
+        });
+      }
+    }
+
     let currentZoom = 1.0;
 
     function showRestartBar() {
@@ -544,15 +829,16 @@
     }
 
     async function loadCacheSize() {
+      const dict = I18N[currentLang] || I18N.ar;
       if (!window.api || !window.api.getCacheSize) return;
       try {
         const bytes = await window.api.getCacheSize();
         const mb = (bytes / (1024 * 1024)).toFixed(1);
         if (cacheSizeDesc) {
-          cacheSizeDesc.textContent = `Using ~${mb} MB of temporary disk and media cache`;
+          cacheSizeDesc.textContent = dict.cache_using.replace('{mb}', mb);
         }
       } catch (e) {
-        if (cacheSizeDesc) cacheSizeDesc.textContent = 'Temporary disk cache';
+        if (cacheSizeDesc) cacheSizeDesc.textContent = dict.cache_fallback;
       }
     }
 
@@ -605,13 +891,14 @@
         // Lock status
         if (window.api.getLockStatus) {
           const lockStatus = await window.api.getLockStatus();
+          const dict = I18N[currentLang] || I18N.ar;
           if (lockEnabledToggle) lockEnabledToggle.checked = !!(lockStatus.enabled && lockStatus.hasPasscode);
           if (lockTimeoutSelect) lockTimeoutSelect.value = String(lockStatus.timeout != null ? lockStatus.timeout : 15);
           if (lockOnSystemLockToggle) lockOnSystemLockToggle.checked = data.lockOnSystemLock !== false;
           if (lockStatusDesc) {
             lockStatusDesc.textContent = lockStatus.hasPasscode
-              ? (lockStatus.enabled ? 'رمز المرور مفعل ومحمي / Passcode protection is active' : 'تم تعيين رمز مرور (القفل معطل حالياً) / Passcode set (lock currently disabled)')
-              : 'لم يتم تعيين رمز مرور بعد / Protect WhatsApp with a PIN or passcode';
+              ? (lockStatus.enabled ? dict.lock_status_active : dict.lock_status_disabled)
+              : dict.lock_status_none;
           }
           if (removePinBtn) {
             removePinBtn.style.display = lockStatus.hasPasscode ? 'inline-block' : 'none';
@@ -637,6 +924,10 @@
           });
         }
 
+        // Language
+        const curLang = data.language || 'ar';
+        applyLanguage(curLang);
+
         // Storage
         loadCacheSize();
 
@@ -646,6 +937,24 @@
       } catch (e) {
         console.error('Failed to load settings:', e);
       }
+    }
+
+    // Language Handlers
+    if (langArBtn) {
+      langArBtn.addEventListener('click', async () => {
+        applyLanguage('ar');
+        if (window.api && window.api.setSetting) await window.api.setSetting('view.language', 'ar');
+        loadAccounts();
+        loadCacheSize();
+      });
+    }
+    if (langEnBtn) {
+      langEnBtn.addEventListener('click', async () => {
+        applyLanguage('en');
+        if (window.api && window.api.setSetting) await window.api.setSetting('view.language', 'en');
+        loadAccounts();
+        loadCacheSize();
+      });
     }
 
     // Theme Handlers
@@ -714,12 +1023,13 @@
     if (lockEnabledToggle) {
       lockEnabledToggle.addEventListener('change', async () => {
         if (!window.api) return;
+        const dict = I18N[currentLang] || I18N.ar;
         const lockStatus = window.api.getLockStatus ? await window.api.getLockStatus() : null;
         if (lockEnabledToggle.checked && (!lockStatus || !lockStatus.hasPasscode)) {
           lockEnabledToggle.checked = false;
           if (pinFeedback) {
             pinFeedback.style.color = '#eab308';
-            pinFeedback.textContent = 'يرجى إدخال رمز المرور أدناه وحفظه أولاً لتفعيل القفل / Please set and save a passcode below first';
+            pinFeedback.textContent = dict.lock_need_pin;
           }
           if (settingsPinInput) {
             settingsPinInput.focus();
@@ -732,8 +1042,8 @@
         if (pinFeedback) {
           pinFeedback.style.color = '#00a884';
           pinFeedback.textContent = lockEnabledToggle.checked
-            ? 'تم تفعيل قفل التطبيق / App lock enabled'
-            : 'تم تعطيل قفل التطبيق / App lock disabled';
+            ? dict.lock_enabled_feedback
+            : dict.lock_disabled_feedback;
           setTimeout(() => { pinFeedback.textContent = ''; }, 3000);
         }
         await loadSettings();
@@ -751,40 +1061,42 @@
     }
     if (savePinBtn) {
       savePinBtn.addEventListener('click', async () => {
+        const dict = I18N[currentLang] || I18N.ar;
         const pin = settingsPinInput.value;
         if (!pin || pin.trim().length < 4) {
           pinFeedback.style.color = '#ef4444';
-          pinFeedback.textContent = 'Passcode must be at least 4 characters';
+          pinFeedback.textContent = dict.pin_min_length;
           return;
         }
         try {
           if (window.api && window.api.setPasscode) {
             await window.api.setPasscode(pin);
             pinFeedback.style.color = '#00a884';
-            pinFeedback.textContent = 'Passcode saved successfully!';
+            pinFeedback.textContent = dict.pin_saved_feedback;
             settingsPinInput.value = '';
             loadSettings();
           }
         } catch (e) {
           pinFeedback.style.color = '#ef4444';
-          pinFeedback.textContent = e.message || 'Failed to save passcode';
+          pinFeedback.textContent = e.message || 'Error';
         }
       });
     }
     if (removePinBtn) {
       removePinBtn.addEventListener('click', async () => {
+        const dict = I18N[currentLang] || I18N.ar;
         try {
           if (window.api && window.api.removePasscode) {
             await window.api.removePasscode();
             pinFeedback.style.color = '#00a884';
-            pinFeedback.textContent = 'تم إزالة رمز المرور بنجاح / Passcode removed successfully';
+            pinFeedback.textContent = dict.pin_removed_feedback;
             settingsPinInput.value = '';
-            settingsPinInput.placeholder = 'New PIN / Passcode (min 4 chars)';
+            settingsPinInput.placeholder = dict.lock_placeholder;
             await loadSettings();
           }
         } catch (e) {
           pinFeedback.style.color = '#ef4444';
-          pinFeedback.textContent = e.message || 'فشل إزالة رمز المرور / Failed to remove passcode';
+          pinFeedback.textContent = e.message || 'Error';
         }
       });
     }
@@ -804,11 +1116,12 @@
     }
     if (openCustomCssBtn) {
       openCustomCssBtn.addEventListener('click', async () => {
+        const dict = I18N[currentLang] || I18N.ar;
         if (window.api && window.api.openCustomCss) {
           await window.api.openCustomCss();
           if (customCssFeedback) {
             customCssFeedback.style.color = 'var(--text-muted)';
-            customCssFeedback.textContent = 'Opened custom.css in editor';
+            customCssFeedback.textContent = dict.css_opened;
             setTimeout(() => { customCssFeedback.textContent = ''; }, 3000);
           }
         }
@@ -816,11 +1129,12 @@
     }
     if (reloadCustomCssBtn) {
       reloadCustomCssBtn.addEventListener('click', async () => {
+        const dict = I18N[currentLang] || I18N.ar;
         if (window.api && window.api.reloadCustomCss) {
           const res = await window.api.reloadCustomCss();
           if (customCssFeedback) {
             customCssFeedback.style.color = res && res.ok ? 'var(--accent)' : '#ef4444';
-            customCssFeedback.textContent = res && res.ok ? 'Custom CSS reloaded!' : 'Failed to reload CSS';
+            customCssFeedback.textContent = res && res.ok ? dict.css_reloaded : dict.css_reload_failed;
             setTimeout(() => { customCssFeedback.textContent = ''; }, 3000);
           }
         }
@@ -877,15 +1191,16 @@
     if (clearCacheBtn) {
       clearCacheBtn.addEventListener('click', async () => {
         if (clearCacheBtn.disabled) return;
+        const dict = I18N[currentLang] || I18N.ar;
         clearCacheBtn.disabled = true;
         const oldText = clearCacheBtn.textContent;
-        clearCacheBtn.textContent = 'Clearing...';
+        clearCacheBtn.textContent = dict.cache_clearing;
         try {
           if (window.api && window.api.clearCache) {
             await window.api.clearCache();
           }
           await loadCacheSize();
-          clearCacheBtn.textContent = 'Cleared!';
+          clearCacheBtn.textContent = dict.cache_cleared;
           setTimeout(() => {
             clearCacheBtn.textContent = oldText;
             clearCacheBtn.disabled = false;
@@ -948,6 +1263,11 @@
         if (data) {
           if (data.theme !== undefined) applyThemeToUI(data.theme);
           if (data.autostart !== undefined) autostartToggle.checked = !!data.autostart;
+          if (data.language !== undefined) {
+            applyLanguage(data.language);
+            loadAccounts();
+            loadCacheSize();
+          }
         }
       });
     }
@@ -973,6 +1293,7 @@
         const activeId = window.api.getActiveAccountId ? await window.api.getActiveAccountId() : 'default';
         const listEl = document.getElementById('settingsAccountsList');
         if (!listEl) return;
+        const dict = I18N[currentLang] || I18N.ar;
         listEl.innerHTML = '';
         accounts.forEach(acc => {
           const isActive = acc.id === activeId;
@@ -1003,14 +1324,14 @@
           nameWrap.style.gap = '8px';
 
           const name = document.createElement('span');
-          name.textContent = acc.name + (acc.isDefault ? ' (Primary)' : '');
+          name.textContent = acc.name + (acc.isDefault ? dict.primary_account : '');
           name.style.fontWeight = '600';
           name.style.fontSize = '14px';
           nameWrap.appendChild(name);
 
           if (isActive) {
             const activeBadge = document.createElement('span');
-            activeBadge.textContent = 'النشط حالياً / Active';
+            activeBadge.textContent = dict.active_account;
             activeBadge.style.fontSize = '11px';
             activeBadge.style.fontWeight = '600';
             activeBadge.style.color = '#00a884';
@@ -1031,7 +1352,7 @@
 
           if (!isActive) {
             const switchBtn = document.createElement('button');
-            switchBtn.textContent = 'انتقال / Switch';
+            switchBtn.textContent = dict.switch_account;
             switchBtn.style.padding = '5px 12px';
             switchBtn.style.background = 'var(--accent, #00a884)';
             switchBtn.style.border = 'none';
@@ -1051,7 +1372,7 @@
 
           if (!acc.isDefault) {
             const delBtn = document.createElement('button');
-            delBtn.textContent = 'حذف / Remove';
+            delBtn.textContent = dict.remove_account;
             delBtn.style.padding = '5px 12px';
             delBtn.style.background = 'rgba(234, 67, 53, 0.1)';
             delBtn.style.border = '1px solid rgba(234, 67, 53, 0.4)';
@@ -1074,14 +1395,14 @@
             delBtn.addEventListener('click', async (e) => {
               e.stopPropagation();
               delBtn.disabled = true;
-              delBtn.textContent = 'جاري الحذف...';
+              delBtn.textContent = dict.deleting;
               try {
                 await window.api.removeAccount(acc.id);
                 await loadAccounts();
               } catch (err) {
                 console.error(err);
                 delBtn.disabled = false;
-                delBtn.textContent = 'حذف / Remove';
+                delBtn.textContent = dict.remove_account;
               }
             });
             rightActions.appendChild(delBtn);

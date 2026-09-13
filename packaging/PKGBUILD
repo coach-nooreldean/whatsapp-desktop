@@ -1,6 +1,6 @@
 # Maintainer: Nooreldean <coach.nooreldean@gmail.com>
 pkgname=whatsapp-desktop
-pkgver=1.6.13
+pkgver=2.0.0
 pkgrel=1
 pkgdesc='WhatsApp Web desktop client for Linux with multi-account support, tray integration and Arabic text fixes'
 arch=('x86_64')

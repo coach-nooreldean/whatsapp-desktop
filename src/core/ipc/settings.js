@@ -28,6 +28,7 @@ function registerSettingsIpc(ctx) {
   ipcMain.handle('settings:get', () => {
     return {
       theme: config.get('view.theme') || 'system',
+      language: config.get('view.language') || 'ar',
       hyprlandAccent: config.get('view.hyprland-accent') !== false,
       autostart: autostart.isEnabled(),
       closeToTray: !!config.get('behaviour.close-to-tray'),
